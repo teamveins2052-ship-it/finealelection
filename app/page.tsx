@@ -1,5 +1,5 @@
-import { DontLookUpHero } from "@/components/public/dont-look-up-hero";
+import { Landing } from "@/components/public/landing";
 
 export default function LandingPage() {
-  return <DontLookUpHero />;
+  return <Landing />;
 }

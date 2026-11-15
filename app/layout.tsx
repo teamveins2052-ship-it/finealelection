@@ -1,13 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { Bowlby_One, JetBrains_Mono, Nunito } from "next/font/google";
+import localFont from "next/font/local";
 import { Providers } from "@/components/shared/providers";
 import "./globals.css";
 
-// Self-hosted by next/font at build time → no layout shift, no runtime Google request.
-// Display: chunky poster lettering. Body: rounded, friendly sans. Mono: receipt codes.
-const display = Bowlby_One({ variable: "--font-display-face", subsets: ["latin"], weight: "400", display: "swap" });
-const nunito = Nunito({ variable: "--font-nunito", subsets: ["latin"], weight: ["400", "600", "700", "800", "900"], display: "swap" });
-const jetbrains = JetBrains_Mono({ variable: "--font-jetbrains", subsets: ["latin"], weight: ["600"], display: "swap" });
+// Use bundled local fonts — zero network requests, 100% reliable on Vercel builds.
+const display = localFont({
+  src: "../public/assets/fonts/luckiest-guy-latin.woff2",
+  variable: "--font-display-face",
+  display: "swap",
+});
+
+const nunito = localFont({
+  src: "../public/assets/fonts/nunito-latin.woff2",
+  variable: "--font-nunito",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "NIAT Elections '26",
@@ -24,7 +31,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${display.variable} ${nunito.variable} ${jetbrains.variable} antialiased`}>
+      <body className={`${display.variable} ${nunito.variable} antialiased`}>
         <Providers>{children}</Providers>
       </body>
     </html>

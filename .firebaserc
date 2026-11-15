@@ -1,0 +1,6 @@
+{
+  "projects": {
+    "default": "demo-niat-elections",
+    "staging": "election2026-2014a"
+  }
+}

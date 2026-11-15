@@ -1,0 +1,227 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+
+    // ======================= helpers =======================
+    function signedIn()   { return request.auth != null && request.auth.token.email_verified == true; }
+    function myEmail()    { return request.auth.token.email.lower(); }
+    function adminDoc()   { return /databases/$(db)/documents/admins/$(myEmail()); }
+    // 2-step proof: custom claim `mfa` == this sign-in's auth_time (set by mfaVerify / mfaEnrollConfirm).
+    function mfaOk()      { return request.auth.token.get('mfa', -1) == request.auth.token.get('auth_time', -2); }
+    // Admin sessions must be < 12 h old (forces a fresh sign-in + 2-step at least twice a day).
+    function freshAdminSession() { return request.auth.token.auth_time > request.time.toMillis() / 1000 - 43200; }
+    function isAdmin()    { return signedIn() && exists(adminDoc()) && mfaOk() && freshAdminSession(); }
+    function isVoterAdmin() { return isAdmin() && get(adminDoc()).data.canViewVoters == true; }
+
+    function studentPath(id) { return /databases/$(db)/documents/students/$(id); }
+    function studentDoc(id)  { return get(studentPath(id)).data; }
+    // P-STU core: verified, active owner of student id
+    function isStudent(id) {
+      return signedIn() && exists(studentPath(id))
+          && studentDoc(id).email == myEmail()
+          && studentDoc(id).status == 'active'
+          && (mfaOk()                                                     // 2-step passed, or…
+              || (election().get('requireStudentMfa', true) == false          // …not required for all
+                  && studentDoc(id).get('mfaEnabled', false) != true));      // …and this student didn't opt in (P-MFA-05)
+    }
+    function isNomineeOwner(nomineeId) {
+      let n = get(/databases/$(db)/documents/nominees/$(nomineeId)).data;
+      return isStudent(n.niatId) && n.active == true;
+    }
+
+    function election()   { return get(/databases/$(db)/documents/settings/election).data; }
+    function votingOpen() {
+      let e = election();
+      return e.paused == false && request.time >= e.opensAt && request.time < e.closesAt;
+    }
+    function campaignOpen() { return request.time < election().closesAt; }
+
+    function onlyChanged(fields) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields); }
+    function hasOnly(fields)     { return request.resource.data.keys().hasOnly(fields); }
+    function str(v, max)         { return v is string && v.size() <= max; }
+    function nowStamp(field)     { return request.resource.data[field] == request.time; }
+
+    // ======================= admins =======================
+    match /admins/{email} {
+      allow read: if isAdmin() || (signedIn() && email == myEmail());    // P-ADM-01 (own doc: lets the app show the 2-step screen)
+      allow write: if false;                                              // P-ADM-02
+    }
+
+    // ======================= students =======================
+    match /students/{niatId} {
+      allow read: if isAdmin()
+                  || (signedIn() && resource.data.email == myEmail());   // P-STU-01 (pending users can read own doc to see status)
+      allow update: if signedIn()
+                    && resource.data.email == myEmail()
+                    && resource.data.status == 'active'
+                    && onlyChanged(['activeSessionId', 'lastLoginAt'])
+                    && str(request.resource.data.activeSessionId, 64)
+                    && nowStamp('lastLoginAt');                           // P-STU-02
+      allow create, delete: if false;                                     // P-STU-03
+    }
+
+    match /directory/{niatId}      { allow read, write: if false; }       // P-DIR-01
+    match /correctionRequests/{id} {
+      allow read: if isAdmin();                                           // P-REQ-01
+      allow write: if false;                                              // P-REQ-02
+    }
+
+    // ======================= ballot =======================
+    match /positions/{positionId} {
+      allow read: if signedIn();                                          // P-POS-01
+      allow write: if isAdmin();                                          // P-POS-02
+    }
+
+    match /nominees/{nomineeId} {
+      allow read: if signedIn();                                          // P-NOM-01
+      allow update: if isStudent(resource.data.niatId)
+                    && resource.data.active == true
+                    && campaignOpen()
+                    && onlyChanged(['photoUrl', 'bio', 'promises', 'updatedAt'])
+                    && (request.resource.data.photoUrl == null
+                        || request.resource.data.photoUrl == resource.data.photoUrl   // keeping the current photo is always fine
+                        || request.resource.data.photoUrl.matches('^https://media\\.YOURDOMAIN\\.com/nominees/' + resource.data.niatId + '/.*'))
+                    && str(request.resource.data.bio, 300)
+                    && request.resource.data.promises is list
+                    && request.resource.data.promises.size() <= 6
+                    && nowStamp('updatedAt');                             // P-NOM-02
+      allow create, delete: if false;                                     // P-NOM-03
+    }
+
+    match /votes/{voteId} {
+      allow read: if isVoterAdmin()
+                  || (resource != null && isStudent(resource.data.voterId));     // P-VOT-01
+      allow create: if isStudent(request.resource.data.voterId)                  // V-1
+        && votingOpen()                                                          // V-2, V-3
+        && voteId == request.resource.data.voterId + '_' + request.resource.data.positionId  // V-4
+        && hasOnly(['voterId', 'positionId', 'nomineeId', 'createdAt'])          // V-5
+        && nowStamp('createdAt')                                                 // V-6
+        && request.resource.data.nomineeId.matches('^' + request.resource.data.positionId + '_[A-Z0-9]+$')
+        && get(/databases/$(db)/documents/nominees/$(request.resource.data.nomineeId)).data.active == true   // V-7
+        && get(/databases/$(db)/documents/positions/$(request.resource.data.positionId)).data.active == true // V-8
+        && (election().nomineesCanSelfVote == true
+            || request.resource.data.nomineeId != request.resource.data.positionId + '_' + request.resource.data.voterId); // V-9
+      allow update, delete: if false;                                            // P-VOT-03
+    }
+
+    match /tallies/{positionId} {
+      allow read: if isAdmin();                                           // P-TAL-01
+      allow write: if false;                                              // P-TAL-02
+    }
+
+    // ======================= campaign content =======================
+    match /posts/{postId} {
+      allow read: if signedIn();                                          // P-PST-01
+      allow create: if isStudent(request.resource.data.niatId)
+                    && studentDoc(request.resource.data.niatId).isNominee == true
+                    && request.resource.data.nomineeId
+                         == studentDoc(request.resource.data.niatId).nomineeOf + '_' + request.resource.data.niatId
+                    && campaignOpen()
+                    && hasOnly(['nomineeId', 'niatId', 'type', 'mediaUrl', 'posterUrl', 'caption',
+                                'durationSec', 'expiresAt', 'commentCount', 'deleted', 'createdAt'])
+                    && request.resource.data.type in ['photo', 'video', 'poster', 'story']
+                    && request.resource.data.mediaUrl.matches('^https://media\\.YOURDOMAIN\\.com/nominees/' + request.resource.data.niatId + '/.*')
+                    && str(request.resource.data.caption, 200)
+                    && (request.resource.data.type != 'video'
+                        || (request.resource.data.durationSec is number && request.resource.data.durationSec <= 30))
+                    && (request.resource.data.type != 'story'
+                        || request.resource.data.expiresAt == request.time + duration.value(24, 'h'))
+                    && request.resource.data.commentCount == 0
+                    && request.resource.data.deleted == false
+                    && nowStamp('createdAt');                             // P-PST-02
+      allow update: if request.resource.data.deleted == true
+                    && onlyChanged(['deleted', 'deletedBy'])
+                    && (isStudent(resource.data.niatId) || isAdmin());    // P-PST-03
+      allow delete: if false;
+    }
+
+    match /questions/{qId} {
+      allow read: if signedIn();                                          // P-QNA-01
+      allow update: if (isNomineeOwner(resource.data.nomineeId)
+                        && onlyChanged(['answer', 'answeredAt'])
+                        && str(request.resource.data.answer, 600)
+                        && nowStamp('answeredAt'))
+                    || (isAdmin() && onlyChanged(['hidden']));           // P-QNA-03
+      allow create, delete: if false;                                     // P-QNA-02 (callable)
+    }
+
+    match /comments/{cId} {
+      allow read: if signedIn();                                          // P-CMT-01
+      allow update: if isAdmin() && onlyChanged(['hidden']);             // P-CMT-03
+      allow create, delete: if false;                                     // P-CMT-02 (callable)
+    }
+
+    match /questionAuthors/{id} { allow read: if isVoterAdmin(); allow write: if false; }  // P-ANO
+    match /commentAuthors/{id}  { allow read: if isVoterAdmin(); allow write: if false; }  // P-ANO
+
+    match /reactions/{reactionId} {
+      allow read: if resource != null && isStudent(resource.data.niatId);                  // P-RCT-01
+      allow create, update: if isStudent(request.resource.data.niatId)
+                    && reactionId == request.resource.data.niatId + '_' + request.resource.data.nomineeId
+                    && request.resource.data.type in ['fire', 'clap']
+                    && hasOnly(['niatId', 'nomineeId', 'type', 'updatedAt'])
+                    && nowStamp('updatedAt');                                              // P-RCT-02
+      allow delete: if isStudent(resource.data.niatId);
+    }
+
+    match /debates/{positionId} {
+      allow read: if signedIn();                                          // P-DEB-01
+      allow write: if isAdmin();                                          // P-DEB-02 (answers via callable)
+    }
+
+    // ======================= engagement =======================
+    match /predictions/{niatId} {
+      allow read: if isStudent(niatId) || isAdmin();                      // P-PRD-01
+      allow create, update: if isStudent(niatId)
+                    && request.time < election().closesAt
+                    && hasOnly(['niatId', 'picks', 'updatedAt'])
+                    && request.resource.data.niatId == niatId
+                    && request.resource.data.picks is map
+                    && request.resource.data.picks.size() <= 10
+                    && nowStamp('updatedAt');                             // P-PRD-02
+      allow delete: if false;
+    }
+
+    match /pulsePolls/{pollId} {
+      allow read: if signedIn();                                          // P-PUL-01
+      allow write: if isAdmin();                                          // P-PUL-02
+    }
+    match /pulseVotes/{voteId} {
+      allow read: if resource != null && isStudent(resource.data.niatId);                  // P-PUL-03
+      allow create: if isStudent(request.resource.data.niatId)
+                    && voteId == request.resource.data.pollId + '_' + request.resource.data.niatId
+                    && get(/databases/$(db)/documents/pulsePolls/$(request.resource.data.pollId)).data.active == true
+                    && request.resource.data.optionIndex is int
+                    && request.resource.data.optionIndex >= 0
+                    && request.resource.data.optionIndex
+                         < get(/databases/$(db)/documents/pulsePolls/$(request.resource.data.pollId)).data.options.size()
+                    && hasOnly(['pollId', 'niatId', 'optionIndex', 'createdAt'])
+                    && nowStamp('createdAt');                             // P-PUL-04
+      allow update, delete: if false;
+    }
+
+    // ======================= admin-managed =======================
+    match /banners/{id} {
+      allow read: if true;                                                // P-BAN-01
+      allow write: if isAdmin()
+                   && (request.resource == null || str(request.resource.data.text, 160));  // P-BAN-02
+    }
+
+    match /settings/{docId} {
+      allow read: if true;                                                // P-SET-01
+      allow write: if isAdmin() && docId == 'election'
+                   && request.resource.data.opensAt < request.resource.data.closesAt
+                   && request.resource.data.closesAt < request.resource.data.siteClosesAt
+                   && request.resource.data.updatedBy == myEmail()
+                   && nowStamp('updatedAt');                              // P-SET-02
+    }
+
+    match /auditLogs/{id} {
+      allow read: if isAdmin();                                           // P-AUD-01
+      allow write: if false;                                              // P-AUD-02
+    }
+
+    // ======================= catch-all =======================
+    match /{document=**} { allow read, write: if false; }
+  }
+}

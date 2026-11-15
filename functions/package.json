@@ -1,0 +1,21 @@
+{
+  "name": "niat-elections-functions",
+  "private": true,
+  "main": "lib/index.js",
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "prebuild": "node copy-schema.mjs",
+    "build": "tsc",
+    "typecheck": "node copy-schema.mjs && tsc --noEmit"
+  },
+  "dependencies": {
+    "firebase-admin": "^14.5.1",
+    "firebase-functions": "^7.4.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

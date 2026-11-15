@@ -1,0 +1,22 @@
+# Never upload secrets or local settings — Vercel gets its settings from its own Environment Variables.
+.env
+.env.*
+!.env.example
+*.pem
+*serviceAccount*.json
+*adminsdk*.json
+firebase-debug*.log
+firestore-debug*.log
+database-debug*.log
+ui-debug*.log
+
+# Local build output and caches (Vercel builds fresh)
+.next
+.next-*
+node_modules
+functions/node_modules
+functions/lib
+coverage
+playwright-report
+test-results
+.firebase

@@ -1,0 +1,165 @@
+@import "tailwindcss";
+
+/* Class-based dark mode (next-themes toggles `.dark` on <html>). DESIGN.md §3.1 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* "Paper & ink" theme: warm off-white paper, black ink, one mustard accent (DESIGN.md §3.1). */
+:root {
+  --bg: #f2f1ec;
+  --surface: #fbfaf7;
+  --surface-2: #e9e8e2;
+  --border: #dcdad3;
+  --ink: #111111;
+  --text: #111111;
+  --text-muted: #5c5b56;
+  --primary: #111111;
+  --primary-fg: #fbfaf7;
+  --accent: #8a6400; /* readable mustard (≥4.5:1 on paper) */
+  --highlight: #f1dc9a; /* soft yellow fill, like the one tinted figure */
+  --success: #2e7d4f;
+  --warning: #9a6a00;
+  --danger: #c63d33;
+  --info: #2f5f9e;
+  /* Soft grey blob shadows like the figures cast, plus hard ink offsets for buttons. */
+  --shadow-card: 0 6px 18px -8px rgb(17 17 17 / 0.18);
+  --shadow-raised: 0 12px 28px -10px rgb(17 17 17 / 0.25);
+  /* Club colours as plain vars so canvas scenes can read them too. */
+  --club-nsgc: #5b3df5;
+  --club-sports: #12b76a;
+  --club-media: #ff5a36;
+  --club-genai: #0ba5ec;
+  --club-cultural: #ee46bc;
+  --club-tech: #f79009;
+  --club-other: #667085;
+}
+
+.dark {
+  --bg: #121211;
+  --surface: #1b1b19;
+  --surface-2: #262622;
+  --border: #3a3a35;
+  --ink: #f2f1ec;
+  --text: #f2f1ec;
+  --text-muted: #aaa89f;
+  --primary: #f2f1ec;
+  --primary-fg: #121211;
+  --accent: #e9c86b;
+  --highlight: #4a3f1c;
+  --success: #5cc48a;
+  --warning: #e9c86b;
+  --danger: #ff7a70;
+  --info: #7fa9e3;
+  --shadow-card: none;
+  --shadow-raised: none;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-muted: var(--text-muted);
+  --color-primary: var(--primary);
+  --color-primary-fg: var(--primary-fg);
+  --color-accent: var(--accent);
+  --color-ink: var(--ink);
+  --color-highlight: var(--highlight);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+
+  --color-club-nsgc: var(--club-nsgc);
+  --color-club-sports: var(--club-sports);
+  --color-club-media: var(--club-media);
+  --color-club-genai: var(--club-genai);
+  --color-club-cultural: var(--club-cultural);
+  --color-club-tech: var(--club-tech);
+  --color-club-other: var(--club-other);
+
+  --font-display: var(--font-display-face), system-ui, sans-serif;
+  --font-sans: var(--font-nunito), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  --shadow-card: var(--shadow-card);
+  --shadow-raised: var(--shadow-raised);
+
+  --ease-smooth: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  --animate-pulse-dot: pulse-dot 1.4s ease-in-out infinite;
+  @keyframes pulse-dot {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.35;
+    }
+  }
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  /* The display face has one weight; never fake-bold it. */
+  font-synthesis-weight: none;
+}
+
+/* Hard ink offset shadow used by pill buttons (the "sticker" look). */
+.shadow-ink {
+  box-shadow: 4px 6px 0 0 var(--ink);
+}
+.shadow-ink-primary {
+  box-shadow: 0 0 0 2.5px var(--bg), 4px 7px 0 2.5px var(--ink);
+}
+
+/* Hand-drawn sticker buttons: tilt + lift on hover, squash flat on press. */
+@media (hover: hover) {
+  .btn-sticker:hover {
+    transform: translate(-1px, -2px) rotate(-1.5deg);
+  }
+}
+.btn-sticker:active {
+  transform: translate(3px, 5px);
+  box-shadow: none;
+}
+
+/* Text over the crowd scene: a soft paper-coloured halo keeps it readable. */
+.paper-halo {
+  text-shadow:
+    0 0 6px var(--bg),
+    0 0 12px var(--bg),
+    0 0 18px var(--bg);
+}
+
+/* Intro already played on this page load: never paint the overlay again. */
+html[data-intro="skip"] .intro-overlay {
+  display: none;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+}
+
+/* Visible focus on every interactive element (DESIGN §10) */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

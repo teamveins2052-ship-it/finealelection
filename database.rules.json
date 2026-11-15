@@ -1,0 +1,11 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "tallies": { ".read": true, ".write": false },
+    "wall": { ".read": true, ".write": false },
+    "election": { ".read": true, ".write": false },
+    "pulse": { ".read": true, ".write": false },
+    "predictionLeaderboard": { ".read": true, ".write": false }
+  }
+}

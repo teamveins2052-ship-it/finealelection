@@ -1,0 +1,6 @@
+/lib/
+src/schema/
+node_modules/
+.env
+.env.*
+!.env.example

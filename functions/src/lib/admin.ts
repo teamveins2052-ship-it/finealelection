@@ -39,9 +39,18 @@ if (!getApps().length) {
   const options: AppOptions = { projectId: PROJECT, ...(databaseURL ? { databaseURL } : {}) };
   const b64 = process.env.FIREBASE_SERVICE_ACCOUNT_B64;
   if (b64 && !IS_EMULATOR) {
-    const key = JSON.parse(Buffer.from(b64, "base64").toString("utf8")) as { project_id: string; client_email: string; private_key: string };
-    options.credential = cert({ projectId: key.project_id, clientEmail: key.client_email, privateKey: key.private_key });
-    options.projectId = key.project_id;
+    try {
+      const key = JSON.parse(Buffer.from(b64, "base64").toString("utf8")) as { project_id: string; client_email: string; private_key: string };
+      options.credential = cert({ projectId: key.project_id, clientEmail: key.client_email, privateKey: key.private_key });
+      options.projectId = key.project_id;
+    } catch (e) {
+      console.error("[admin] failed to parse FIREBASE_SERVICE_ACCOUNT_B64", e);
+    }
+  } else if (process.env.FIREBASE_SA_CLIENT_EMAIL && process.env.FIREBASE_SA_PRIVATE_KEY && !IS_EMULATOR) {
+    const clientEmail = process.env.FIREBASE_SA_CLIENT_EMAIL;
+    const privateKey = process.env.FIREBASE_SA_PRIVATE_KEY.replace(/\\n/g, "\n");
+    options.credential = cert({ projectId: PROJECT, clientEmail, privateKey });
+    options.projectId = PROJECT;
   }
   initializeApp(options);
 }

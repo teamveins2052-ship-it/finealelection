@@ -6,7 +6,13 @@ import { SessionProvider } from "@/hooks/use-session";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="light"
+      enableSystem={false}
+      forcedTheme="light"
+      disableTransitionOnChange
+    >
       <SessionProvider>{children}</SessionProvider>
       <Toaster position="bottom-center" richColors closeButton duration={4000} />
     </ThemeProvider>

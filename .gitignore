@@ -71,9 +71,3 @@ functions/lib
 .claude/settings.local.json
 playwright-report/
 test-results/
-
-# NOT ours: copy of dontlookup.app (3D models, audio, art, code) — never publish
-public/hero.html
-public/assets/
-public/election_rally.js
-components/public/dont-look-up-hero.tsx

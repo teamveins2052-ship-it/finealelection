@@ -15,11 +15,13 @@ import { connectFunctionsEmulator, getFunctions, type Functions } from "firebase
 import { initializeAppCheck, ReCaptchaEnterpriseProvider, type AppCheck } from "firebase/app-check";
 
 const config = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyA5ehphJdc5m5n0BE3Xui5O9w4nUpbI2QE",
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "election2026-2014a.firebaseapp.com",
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "election2026-2014a",
+  databaseURL:
+    process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL ||
+    "https://election2026-2014a-default-rtdb.asia-southeast1.firebasedatabase.app",
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:886538186237:web:efa5cdec9fba54547d3d94",
 };
 
 const USE_EMULATORS = process.env.NEXT_PUBLIC_USE_EMULATORS === "true";

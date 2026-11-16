@@ -12,7 +12,7 @@ import { getFirestore } from "firebase-admin/firestore";
  */
 export const IS_EMULATOR = process.env.FUNCTIONS_EMULATOR === "true" || process.env.USE_FIREBASE_EMULATORS === "true";
 export const REGION = "asia-south1";
-const PROJECT = process.env.GCLOUD_PROJECT ?? process.env.FIREBASE_PROJECT_ID ?? "demo-niat-elections";
+const PROJECT = process.env.GCLOUD_PROJECT ?? process.env.FIREBASE_PROJECT_ID ?? "election2026-2014a";
 
 /**
  * App Check rollout (RLSPOLICIES P-APP-01): leave ENFORCE_APP_CHECK unset while you set up
@@ -35,7 +35,7 @@ if (!getApps().length) {
   // always sets DATABASE_URL (asia-southeast1 needs the full regional URL).
   const databaseURL = IS_EMULATOR
     ? `http://127.0.0.1:9000?ns=${PROJECT}-default-rtdb`
-    : (process.env.DATABASE_URL?.trim() || `https://${PROJECT}-default-rtdb.firebaseio.com`);
+    : (process.env.DATABASE_URL?.trim() || "https://election2026-2014a-default-rtdb.asia-southeast1.firebasedatabase.app");
   const options: AppOptions = { projectId: PROJECT, ...(databaseURL ? { databaseURL } : {}) };
   const b64 = process.env.FIREBASE_SERVICE_ACCOUNT_B64;
   if (b64 && !IS_EMULATOR) {

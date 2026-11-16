@@ -6,7 +6,7 @@ import { TwoStep } from "@/components/auth/two-step";
 import { Stepper } from "@/components/auth/stepper";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
+import { GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup } from "@/lib/db/auth";
 import {
   BarChart3, Bell, ClipboardList, Download, Eye, FileSpreadsheet, Flag, Gauge, Inbox, LogOut, Megaphone, Menu, Settings, ShieldAlert, Trophy, Users, Vote, X,
 } from "lucide-react";
@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card, FieldError, Input, Skeleton } from "@/components/ui/primitives";
 import { AdminDataProvider, useAdminData } from "./data";
 import { logout, useSession, useTwoStep } from "@/hooks/use-session";
-import { firebase } from "@/lib/firebase/client";
+import { backend } from "@/lib/backend/client";
 import { call, errorMessage } from "@/lib/client-data";
 import { cn } from "@/lib/utils";
 
@@ -80,7 +80,7 @@ function SessionGuard() {
     const events = ["pointerdown", "keydown", "scroll", "visibilitychange"] as const;
     events.forEach((e) => window.addEventListener(e, bump, { passive: true }));
     const t = setInterval(async () => {
-      const user = firebase().auth.currentUser;
+      const user = backend().auth.currentUser;
       const authTime = Number((await user?.getIdTokenResult())?.claims.auth_time ?? 0);
       const tooOld = authTime > 0 && Date.now() / 1000 - authTime > MAX_SESSION_SEC;
       if (Date.now() - last > IDLE_MS || tooOld) {
@@ -163,8 +163,10 @@ function AdminLogin() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState("");
-  const [pass, setPass] = useState("password123");
-  const dev = process.env.NEXT_PUBLIC_USE_EMULATORS === "true";
+  const [pass, setPass] = useState("");
+  const [linkEmail, setLinkEmail] = useState("");
+  const [linkSent, setLinkSent] = useState(false);
+  const dev = process.env.NEXT_PUBLIC_TEST_LOGIN === "true";
 
   const run = async (fn: () => Promise<unknown>) => {
     setBusy(true);
@@ -184,7 +186,7 @@ function AdminLogin() {
               ? "You're offline or the server is unreachable. Try again."
               : code === "auth/too-many-requests"
                 ? "Too many attempts. Wait a few minutes and try again."
-                : "Sign-in didn't complete. Try again.",
+                : errorMessage(e, "Sign-in didn't complete. Try again."),
       );
     } finally {
       setBusy(false);
@@ -198,12 +200,30 @@ function AdminLogin() {
         <Stepper steps={["Sign in", "2-step"]} current={0} />
         <h1 className="font-display text-xl">Election committee sign-in</h1>
         <p className="text-sm text-muted">Use your committee Google account. You&apos;ll confirm with your authenticator app next.</p>
-        <Button variant="google" className="w-full" loading={busy} onClick={() => run(() => signInWithPopup(firebase().auth, new GoogleAuthProvider()))}>
+        <Button variant="google" className="w-full" loading={busy} onClick={() => run(() => { sessionStorage.setItem("niat.adminLogin", "1"); return signInWithPopup(backend().auth, new GoogleAuthProvider()); })}>
           <GoogleG /> Continue with Google
         </Button>
+        {linkSent ? (
+          <p className="rounded-md bg-surface-2 p-3 text-sm">Check your inbox — tap the link to sign in. It expires in 1 hour.</p>
+        ) : (
+          <form
+            className="space-y-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              run(async () => {
+                sessionStorage.setItem("niat.adminLogin", "1");
+                await call("sendLoginLink", { email: linkEmail.trim().toLowerCase(), next: "admin" });
+                setLinkSent(true);
+              });
+            }}
+          >
+            <Input aria-label="Committee email" type="email" placeholder="or get an email sign-in link" value={linkEmail} onChange={(e) => setLinkEmail(e.target.value)} />
+            <Button type="submit" variant="outline" className="w-full" loading={busy} disabled={!linkEmail.includes("@")}>Email me a sign-in link</Button>
+          </form>
+        )}
         {dev && (
-          <form className="space-y-2 border-t border-dashed border-border pt-4" onSubmit={(e) => { e.preventDefault(); run(() => signInWithEmailAndPassword(firebase().auth, email.trim(), pass)); }}>
-            <p className="text-xs font-semibold text-muted">Emulator test sign-in (admin@niat.test / judge@niat.test)</p>
+          <form className="space-y-2 border-t border-dashed border-border pt-4" onSubmit={(e) => { e.preventDefault(); run(() => signInWithEmailAndPassword(backend().auth, email.trim(), pass)); }}>
+            <p className="text-xs font-semibold text-muted">Test account sign-in</p>
             <Input aria-label="Email" placeholder="admin@niat.test" value={email} onChange={(e) => setEmail(e.target.value)} />
             <Input aria-label="Password" type="password" value={pass} onChange={(e) => setPass(e.target.value)} />
             <Button type="submit" variant="outline" className="w-full" loading={busy}>Sign in</Button>

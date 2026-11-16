@@ -2,8 +2,8 @@
  * Import the official student workbook (all hall tabs) into the REAL project — same validation,
  * dedupe and audit as Admin → Import (importRows in functions/src/callables/admin.ts).
  *
- *   tsx --env-file=.env.bootstrap scripts/ops/import-sheet.ts <file.xlsx>           # dry run: checks only
- *   tsx --env-file=.env.bootstrap scripts/ops/import-sheet.ts <file.xlsx> --write   # writes
+ *   npm run ops:import -- <file.xlsx>           # dry run: checks only
+ *   npm run ops:import -- <file.xlsx> --write   # writes
  *
  * Only NIAT ID, name, email, mobile, hall-ticket no. and batch are read. Every other column
  * (S.No, Branch, Father Name, Father Mobile…) is dropped before anything else happens and is
@@ -17,11 +17,7 @@ const file = process.argv[2];
 const WRITE = process.argv.includes("--write");
 if (!file) throw new Error("Usage: import-sheet.ts <file.xlsx> [--write]");
 
-const keyPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-if (!keyPath) throw new Error("Set GOOGLE_APPLICATION_CREDENTIALS");
-process.env.FIREBASE_SERVICE_ACCOUNT_B64 = Buffer.from(readFileSync(keyPath)).toString("base64");
-process.env.DATABASE_URL = process.env.FIREBASE_DATABASE_URL;
-delete process.env.FIRESTORE_EMULATOR_HOST;
+if (!process.env.SUPABASE_DB_URL) throw new Error("Set SUPABASE_DB_URL (npm run ops:import loads .env.local)");
 
 const norm = (h: string) => IMPORT_HEADER_MAP[h.trim().toLowerCase().replace(/\s+/g, " ")];
 

@@ -1,5 +1,12 @@
 # NIAT Campus Elections 2026 — Product Requirements Document (PRD)
 
+> **⚠ Platform change (16 Nov 2026): the project now runs on Supabase, not Firebase.**
+> Data = Postgres tables (`supabase/migrations/`), security = RLS + `functions/src/rules.ts`,
+> live counts = `rt` table + Supabase Realtime, sign-in = Supabase Auth (Google / email link via
+> Brevo), uploads = Supabase Storage, hosting = Vercel. See **`docs/FREE_HOSTING.md`** for the
+> current setup and **`AGENTS.md`** for commands. Firebase-specific details below (emulators,
+> firestore.rules, Cloud Functions, RTDB, R2, seeds) are historical.
+
 > **Owner:** Tarun Uttupulusu · **Status:** Scope locked · **Last updated:** 14 Nov 2026
 > **Build deadline:** 17–18 Nov · **Voting:** 19–20 Nov · **Site live until:** 22–23 Nov, then shut down
 

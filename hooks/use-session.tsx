@@ -1,9 +1,10 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { onAuthStateChanged, onIdTokenChanged, signOut, type User } from "firebase/auth";
-import { collection, doc, getDoc, limit, onSnapshot, query, where } from "firebase/firestore";
-import { firebase } from "@/lib/firebase/client";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { onAuthStateChanged, signOut, type User } from "@/lib/db/auth";
+import { call } from "@/lib/client-data";
+import { collection, doc, getDoc, limit, onSnapshot, query, where } from "@/lib/db/firestore";
+import { backend } from "@/lib/backend/client";
 import { conv, type WithId } from "@/lib/schema/converters";
 import type { Student } from "@/lib/schema";
 
@@ -31,7 +32,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session>({ status: "loading" });
 
   useEffect(() => {
-    const { auth, db } = firebase();
+    const { auth, db } = backend();
     let unsubStudent: (() => void) | null = null;
 
     const unsubAuth = onAuthStateChanged(auth, async (user) => {
@@ -81,7 +82,7 @@ export function useSession() {
 export async function logout() {
   localStorage.removeItem(SESSION_KEY);
   sessionStorage.clear();
-  await signOut(firebase().auth);
+  await signOut(backend().auth);
 }
 
 export function useIsNominee() {
@@ -90,24 +91,24 @@ export function useIsNominee() {
 }
 
 /**
- * Has this sign-in passed 2-step? The proof is a custom claim `mfa` equal to the token's
- * `auth_time` — the same check the database rules and functions make, so the UI never
- * believes something the server wouldn't.
+ * Has this sign-in passed 2-step? The proof is kept on the server (bound to this Supabase
+ * session), so we ask the server — the UI never believes something the server wouldn't.
  */
 export function useTwoStep(): { verified: boolean | null; refresh: () => Promise<void> } {
   const [verified, setVerified] = useState<boolean | null>(null);
-  useEffect(() => {
-    const { auth } = firebase();
-    return onIdTokenChanged(auth, async (user) => {
-      if (!user) return setVerified(null);
-      const { claims } = await user.getIdTokenResult();
-      setVerified(typeof claims.mfa === "number" && Number(claims.mfa) === Number(claims.auth_time));
-    });
+  const check = useCallback(async () => {
+    try {
+      const r = await call<Record<string, never>, { verified?: boolean }>("mfaStatus", {});
+      setVerified(r.verified === true);
+    } catch {
+      setVerified(false);
+    }
   }, []);
-  const refresh = async () => {
-    const user = firebase().auth.currentUser;
-    if (!user) return;
-    await user.getIdToken(true); // fires onIdTokenChanged → Firestore picks up the new claim too
-  };
-  return { verified, refresh };
+  useEffect(() => {
+    return onAuthStateChanged(backend().auth, (user) => {
+      if (!user) setVerified(null);
+      else void check();
+    });
+  }, [check]);
+  return { verified, refresh: check };
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { doc, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
+import { doc, serverTimestamp, setDoc, updateDoc } from "@/lib/db/firestore";
 import { toast } from "sonner";
 import { ArrowDown, ArrowUp, Plus, Search, X } from "lucide-react";
 import { PageTitle } from "@/components/admin/shell";
@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, Chip, Input, Label, Skeleton, Textarea } from "@/components/ui/primitives";
 import { Sheet } from "@/components/ui/sheet";
 import { call, errorMessage, invalidate } from "@/lib/client-data";
-import { firebase } from "@/lib/firebase/client";
+import { backend } from "@/lib/backend/client";
 import { PositionId, type Position } from "@/lib/schema";
 import type { WithId } from "@/lib/schema/converters";
 
@@ -27,7 +27,7 @@ export default function PositionsPage() {
     const i = positions.findIndex((x) => x._id === p._id);
     const other = positions[i + dir];
     if (!other) return;
-    const { db } = firebase();
+    const { db } = backend();
     await Promise.all([
       updateDoc(doc(db, "positions", p._id), { order: other.order, updatedAt: serverTimestamp() }),
       updateDoc(doc(db, "positions", other._id), { order: p.order, updatedAt: serverTimestamp() }),
@@ -97,7 +97,7 @@ function PositionEditor({ position, nextOrder, onClose }: { position: WithId<Pos
     if (f.name.trim().length < 2 || f.club.trim().length < 2) return toast.error("Name and club are required.");
     setBusy(true);
     try {
-      const ref = doc(firebase().db, "positions", id);
+      const ref = doc(backend().db, "positions", id);
       const base = { name: f.name.trim(), club: f.club.trim(), color: f.color, icon: f.icon, description: f.description.trim().slice(0, 300), active: f.active, updatedAt: serverTimestamp() };
       if (position) await updateDoc(ref, base);
       else await setDoc(ref, { ...base, id, order: nextOrder, nomineeCount: 0, createdAt: serverTimestamp() });

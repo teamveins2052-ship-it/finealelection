@@ -1,5 +1,12 @@
 # NIAT Campus Elections 2026 — Tech Stack (TECHSTACK.md)
 
+> **⚠ Platform change (16 Nov 2026): the project now runs on Supabase, not Firebase.**
+> Data = Postgres tables (`supabase/migrations/`), security = RLS + `functions/src/rules.ts`,
+> live counts = `rt` table + Supabase Realtime, sign-in = Supabase Auth (Google / email link via
+> Brevo), uploads = Supabase Storage, hosting = Vercel. See **`docs/FREE_HOSTING.md`** for the
+> current setup and **`AGENTS.md`** for commands. Firebase-specific details below (emulators,
+> firestore.rules, Cloud Functions, RTDB, R2, seeds) are historical.
+
 > Companion to `PRD.md` and `DESIGN.md`. Every tool, why it was picked, what was rejected, free-tier limits, and how the pieces connect.
 > ⚠️ Free-tier numbers below are from memory as of late 2026. **Re-check every limit on the provider's pricing page on setup day.** Pin exact package versions in `package.json` once installed.
 

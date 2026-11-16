@@ -1,5 +1,5 @@
-import { FieldValue, type DocumentData, type Timestamp } from "firebase-admin/firestore";
-import { HttpsError } from "firebase-functions/v2/https";
+import { FieldValue, type DocumentData, type Timestamp } from "./store";
+import { HttpsError } from "./callable";
 import { db, rtdb, IS_EMULATOR } from "./admin";
 import { mailAccounts, pickAccount, type DayUsage } from "./mail-accounts";
 

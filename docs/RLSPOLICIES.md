@@ -1,7 +1,21 @@
 # NIAT Campus Elections 2026 — Access Policies (RLSPOLICIES.md)
 
-> **Note on the name:** "RLS" (Row-Level Security) is a PostgreSQL/Supabase term. This project runs on **Firebase**, so the equivalent is **Firestore Security Rules + Realtime Database Rules**, plus authorization checks inside **Cloud Functions**, **edge API routes** and **R2 upload signing**. This document is the **single source of truth** for who can do what, everywhere.
-> `firestore.rules` in §5 is authoritative — `DATAMODEL.md §7` mirrors it.
+> **Platform (since 16 Nov 2026): Supabase.** The policies below (IDs P-*, V-*) are unchanged, but
+> they are now enforced in three layers:
+> 1. **Postgres RLS** (`supabase/migrations/0001_init.sql`): RLS on for every table, **no browser
+>    policies** except SELECT on `rt` public nodes (tallies, wall, election, pulse,
+>    predictionLeaderboard) and on `_changes` (data-free pings). The publishable key can read
+>    nothing else and write nothing at all.
+> 2. **Server rules** (`functions/src/rules.ts`, behind `POST /api/db`): a line-for-line port of
+>    the old `firestore.rules` shown in §5. **This file is now authoritative**; §5 is kept as the
+>    readable reference.
+> 3. **Server actions** (`functions/src/callables/*`, behind `POST /api/fn/<name>`): guard → rate
+>    limit → Zod → audit, as before. Votes are also append-only in the database (`votes_guard`
+>    trigger).
+>
+> Where the text below says Firestore/RTDB/Cloud Functions/R2, read: Postgres table / `rt` table +
+> Realtime / server action / Supabase Storage. 2-step proof is a `_mfa_sessions` row bound to the
+> Supabase session id instead of a token claim.
 
 ---
 

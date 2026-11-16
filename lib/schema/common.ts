@@ -1,9 +1,9 @@
 import { z } from "zod";
 
-/** Works for both client (firebase/firestore) and admin (firebase-admin) Timestamps. */
+/** Timestamp objects from lib/db/codec (browser and server). */
 export const TimestampSchema = z.custom<{ toDate(): Date; toMillis(): number }>(
   (v) => !!v && typeof (v as { toDate?: unknown }).toDate === "function",
-  { message: "Expected Firestore Timestamp" },
+  { message: "Expected Timestamp" },
 );
 export type TimestampLike = z.infer<typeof TimestampSchema>;
 
@@ -19,11 +19,14 @@ export const Phone = z.string().regex(/^\+91[6-9]\d{9}$/, "Invalid phone");
 export const Batch = z.string().regex(/^20\d{2}$/);
 export const HexColor = z.string().regex(/^#[0-9A-Fa-f]{6}$/);
 
-export const MEDIA_BASE_URL = process.env.NEXT_PUBLIC_MEDIA_BASE_URL ?? "https://media.example.com/";
+/** Nominee media live in the Supabase Storage bucket "media" (public read, server-signed uploads). */
+export const MEDIA_BASE_URL =
+  process.env.NEXT_PUBLIC_MEDIA_BASE_URL ||
+  `${(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://example.supabase.co").replace(/\/$/, "")}/storage/v1/object/public/media/`;
 export const MediaUrl = z
   .string()
   .url()
-  .refine((u) => u.startsWith(MEDIA_BASE_URL), "Media must be hosted on R2");
+  .refine((u) => u.startsWith(MEDIA_BASE_URL), "Media must be uploaded through the app");
 
 export const StudentStatus = z.enum(["active", "pending", "disabled"]);
 export const Phase = z.enum(["setup", "campaign", "voting", "closed", "results", "concluded"]);

@@ -1,5 +1,12 @@
 # NIAT Campus Elections 2026 — Master Document (MASTER.md)
 
+> **⚠ Platform change (16 Nov 2026): the project now runs on Supabase, not Firebase.**
+> Data = Postgres tables (`supabase/migrations/`), security = RLS + `functions/src/rules.ts`,
+> live counts = `rt` table + Supabase Realtime, sign-in = Supabase Auth (Google / email link via
+> Brevo), uploads = Supabase Storage, hosting = Vercel. See **`docs/FREE_HOSTING.md`** for the
+> current setup and **`AGENTS.md`** for commands. Firebase-specific details below (emulators,
+> firestore.rules, Cloud Functions, RTDB, R2, seeds) are historical.
+
 > **Start here.** This is the single entry point to the project: what we're building, which document is authoritative for what, every key decision, the dated build plan, and the commands you'll use daily.
 > **Owner:** Tarun Uttupulusu · **Status:** Planning complete, build starts 14 Nov 2026
 > **Hard dates:** build done **18 Nov** · voting **19–20 Nov** · site live until **23 Nov**

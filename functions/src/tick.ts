@@ -1,15 +1,17 @@
-import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import { FieldValue, Timestamp } from "./lib/store";
 import { db } from "./lib/admin";
 import { countVote } from "./triggers/on-vote-created";
 import { syncSettingsFromDb } from "./triggers/on-settings-written";
 import { drainQueue } from "./triggers/mail-triggers";
+import { flushLive } from "./lib/live";
 
 /**
  * Background housekeeping for free hosting (replaces triggers + the scheduled function):
  *  1. count any vote the browser never reported (closed tab, lost signal…)
- *  2. mirror settings → RTDB (covers changes made in the Firebase console)
+ *  2. mirror settings → rt.election (covers edits made in the Supabase table editor)
+ *  2b. rebuild the public live counts (rt.tallies / rt.wall)
  *  3. send queued emails that waited for Brevo's daily limit
- * A Firestore lease makes sure only one server instance runs it per window.
+ * A database lease makes sure only one server instance runs it per window.
  */
 const LEASE_MS = 60_000;
 
@@ -40,6 +42,7 @@ export async function runTick(force = false): Promise<{ ran: boolean; counted: n
   await lease.set({ voteCursor: newest, lastRun: FieldValue.serverTimestamp() }, { merge: true });
 
   await syncSettingsFromDb();
+  await flushLive(true);
   const mailed = await drainQueue(50);
   return { ran: true, counted, mailed };
 }

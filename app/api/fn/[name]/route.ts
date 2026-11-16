@@ -7,7 +7,7 @@ let server: Promise<typeof Server> | null = null;
 const loadServer = () => (server ??= import("@/functions/src/http"));
 
 /**
- * Server actions over HTTP for free hosting (no Cloud Functions / Blaze plan).
+ * Server actions over HTTP (Supabase backend, no Cloud Functions).
  * POST /api/fn/<callableName>  body: { data }  →  { result } | { error: { status, message } }
  * Guards, rate limits and Zod validation run inside each callable (AGENTS §5.8).
  */
@@ -37,10 +37,10 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ name: stri
     // First hop only — the hosting proxy appends the real client IP to x-forwarded-for.
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown";
     const { handleCallable, runTick } = await loadServer();
-    const r = await handleCallable(name, data, { authorization: req.headers.get("authorization"), appCheck: req.headers.get("x-firebase-appcheck") }, ip);
+    const r = await handleCallable(name, data, { authorization: req.headers.get("authorization") }, ip);
 
     // Opportunistic housekeeping after the response (vote sweep, settings mirror, email queue).
-    // The Firestore lease inside runTick keeps it to once a minute across all instances.
+    // The database lease inside runTick keeps it to once a minute across all instances.
     try {
       after(() => runTick().catch((e: unknown) => console.error("[tick]", e instanceof Error ? e.message : e)));
     } catch (tickErr) {

@@ -1,6 +1,5 @@
-import { HttpsError, type CallableFunction, type CallableRequest } from "firebase-functions/v2/https";
-import { getAppCheck } from "firebase-admin/app-check";
-import { adminAuth, ENFORCE_APP_CHECK } from "./lib/admin";
+import { HttpsError, type CallableFunction, type CallableRequest } from "./lib/callable";
+import { TokenError, verifyAccessToken } from "./lib/auth";
 import { requestCorrection, askQuestion } from "./callables/student";
 import {
   importStudents,
@@ -17,12 +16,12 @@ import { mfaStatus, mfaEnrollStart, mfaEnrollConfirm, mfaVerify, mfaReset } from
 import { lookupStudent, checkStudentEmail } from "./callables/lookup";
 import { bootstrapElection } from "./callables/bootstrap";
 import { countMyVote, syncReactions, syncElection, welcome } from "./callables/sync";
+import { sendLoginLink } from "./callables/login";
 
 /**
- * Runs the same callables over plain HTTP from the Next.js server (/api/fn/[name]) so the app
- * works on free hosting without Cloud Functions. Each callable's own guard, rate limit and Zod
- * parse still run inside `.run()` — this adapter only rebuilds the request the Functions
- * runtime would have built: verified ID token → req.auth, App Check → req.app, client IP.
+ * Runs the server actions over plain HTTP from the Next.js server (/api/fn/[name]). Each
+ * action's own guard, rate limit and Zod parse run inside `.run()` — this adapter only builds
+ * the request: verified Supabase access token (+ 2-step proof) → req.auth, client IP.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const CALLABLES: Record<string, CallableFunction<any, any>> = {
@@ -31,7 +30,7 @@ const CALLABLES: Record<string, CallableFunction<any, any>> = {
   sendReminders, recountPosition, sendAnnouncement, emailStatus,
   mfaStatus, mfaEnrollStart, mfaEnrollConfirm, mfaVerify, mfaReset,
   lookupStudent, checkStudentEmail, bootstrapElection,
-  countMyVote, syncReactions, syncElection, welcome,
+  countMyVote, syncReactions, syncElection, welcome, sendLoginLink,
 };
 
 export interface HttpResult {
@@ -48,7 +47,7 @@ const STATUS: Record<string, number> = {
 export async function handleCallable(
   name: string,
   data: unknown,
-  headers: { authorization?: string | null; appCheck?: string | null },
+  headers: { authorization?: string | null },
   ip: string,
 ): Promise<HttpResult> {
   const fn = Object.prototype.hasOwnProperty.call(CALLABLES, name) ? CALLABLES[name] : undefined;
@@ -59,30 +58,15 @@ export async function handleCallable(
     const bearer = headers.authorization?.match(/^Bearer (.+)$/)?.[1];
     if (bearer) {
       try {
-        const token = await adminAuth.verifyIdToken(bearer);
+        const token = await verifyAccessToken(bearer);
         auth = { uid: token.uid, token, rawToken: bearer };
-      } catch {
-        throw new HttpsError("unauthenticated", "Your sign-in expired. Sign in again.");
+      } catch (e) {
+        if (e instanceof TokenError) throw new HttpsError("unauthenticated", "Your sign-in expired. Sign in again.");
+        throw e;
       }
     }
-    let app: CallableRequest["app"];
-    if (headers.appCheck) {
-      try {
-        const r = await getAppCheck().verifyToken(headers.appCheck);
-        app = { appId: r.appId, token: r.token, alreadyConsumed: false };
-      } catch {
-        app = undefined;
-      }
-    }
-    if (ENFORCE_APP_CHECK && !app) throw new HttpsError("failed-precondition", "App verification failed.");
 
-    const req = {
-      data,
-      auth,
-      app,
-      rawRequest: { ip, headers: {} },
-      acceptsStreaming: false,
-    } as unknown as CallableRequest;
+    const req: CallableRequest = { data, auth, rawRequest: { ip } };
     const result = await fn.run(req);
     return { status: 200, body: { result: result ?? null } };
   } catch (e) {

@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, limit, onSnapshot, orderBy, query, where, type Timestamp } from "firebase/firestore";
+import { collection, limit, onSnapshot, orderBy, query, where, type Timestamp } from "@/lib/db/firestore";
 import { Download } from "lucide-react";
 import { PageTitle } from "@/components/admin/shell";
 import { Button } from "@/components/ui/button";
 import { Card, Skeleton } from "@/components/ui/primitives";
-import { firebase } from "@/lib/firebase/client";
+import { backend } from "@/lib/backend/client";
 import { downloadCsv } from "@/lib/csv";
 import { fmtIST } from "@/lib/election";
 import { AuditAction } from "@/lib/schema";
@@ -20,7 +20,7 @@ export default function AuditPage() {
   const [logs, setLogs] = useState<Log[] | null>(null);
 
   useEffect(() => {
-    const base = collection(firebase().db, "auditLogs");
+    const base = collection(backend().db, "auditLogs");
     const q = action ? query(base, where("action", "==", action), orderBy("at", "desc"), limit(max)) : query(base, orderBy("at", "desc"), limit(max));
     return onSnapshot(q, (s) => setLogs(s.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Log, "id">) }))), () => setLogs([]));
   }, [action, max]);

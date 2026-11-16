@@ -1,5 +1,12 @@
 # MASTERPROMPT.md — One Prompt to Build NIAT Elections 2026
 
+> **⚠ Platform change (16 Nov 2026): the project now runs on Supabase, not Firebase.**
+> Data = Postgres tables (`supabase/migrations/`), security = RLS + `functions/src/rules.ts`,
+> live counts = `rt` table + Supabase Realtime, sign-in = Supabase Auth (Google / email link via
+> Brevo), uploads = Supabase Storage, hosting = Vercel. See **`docs/FREE_HOSTING.md`** for the
+> current setup and **`AGENTS.md`** for commands. Firebase-specific details below (emulators,
+> firestore.rules, Cloud Functions, RTDB, R2, seeds) are historical.
+
 > **How to use:** paste everything below the line into Claude Code, Cursor, or any coding agent as the first message of a new project (or save it as the project's system/rules prompt).
 > It's self-contained. If the `docs/` folder is in the repo, the agent should read it too. This prompt is the **newest** source: where `docs/` differ on the **email-link login** (§6.2), follow this prompt.
 > For step-by-step execution, pair it with `PROMPTGUIDE.md` (one phase per session).

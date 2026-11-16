@@ -5,10 +5,9 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   GoogleAuthProvider,
-  sendSignInLinkToEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
-} from "firebase/auth";
+} from "@/lib/db/auth";
 import {
   ArrowLeft,
   Lock,
@@ -28,7 +27,7 @@ import {
   Label,
   Skeleton,
 } from "@/components/ui/primitives";
-import { firebase } from "@/lib/firebase/client";
+import { backend } from "@/lib/backend/client";
 import { EMAIL_LINK_KEY, NIAT_KEY, finishLogin } from "@/lib/auth-flow";
 import { Email, NIAT_ID_REGEX } from "@/lib/schema";
 import { call, errorMessage } from "@/lib/client-data";
@@ -47,7 +46,8 @@ interface Details {
   status: "active" | "pending" | "disabled";
 }
 
-const DEV = process.env.NEXT_PUBLIC_USE_EMULATORS === "true";
+// Password sign-in for test accounts only (never set NEXT_PUBLIC_TEST_LOGIN on the live site).
+const DEV = process.env.NEXT_PUBLIC_TEST_LOGIN === "true";
 
 const LOOKUP_CACHE = "niat.lookup";
 const LOOKUP_TTL_MS = 10 * 60_000;
@@ -452,19 +452,10 @@ function VerifyStep({ d, onBack }: { d: Details; onBack: () => void }) {
     try {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: "select_account" });
-      await signInWithPopup(firebase().auth, provider);
-      await done();
-    } catch (e) {
-      const code = (e as { code?: string }).code;
-      if (
-        code !== "auth/popup-closed-by-user" &&
-        code !== "auth/cancelled-popup-request"
-      ) {
-        setError(
-          "Google sign-in didn't complete. Try again or use the email link.",
-        );
-      }
-    } finally {
+      // Full-page redirect to Google; /auth/callback finishes the login (NIAT_KEY is saved above).
+      await signInWithPopup(backend().auth, provider);
+    } catch {
+      setError("Google sign-in isn't available right now. Use the email link instead.");
       setBusy(null);
     }
   };
@@ -476,7 +467,7 @@ function VerifyStep({ d, onBack }: { d: Details; onBack: () => void }) {
     setBusy("link");
     setError(null);
     try {
-      // Cloud Function checkStudentEmail: compared server-side, answers only { match }.
+      // checkStudentEmail compares server-side and answers only { match }.
       const json = await call<
         { niatId: string; email: string },
         { match: boolean }
@@ -486,10 +477,8 @@ function VerifyStep({ d, onBack }: { d: Details; onBack: () => void }) {
           `That isn't the email registered for ${d.niatId} (${d.maskedEmail}). Check for typos or request a correction.`,
         );
       // The link goes ONLY to the sheet's email — proven by the match above (D-01).
-      await sendSignInLinkToEmail(firebase().auth, parsed.data, {
-        url: `${window.location.origin}/auth/callback`,
-        handleCodeInApp: true,
-      });
+      // The server re-checks the match, then emails a one-time Supabase sign-in link.
+      await call("sendLoginLink", { email: parsed.data, niatId: d.niatId });
       localStorage.setItem(EMAIL_LINK_KEY, parsed.data);
       setLinkSent(true);
       setCooldown(60);
@@ -508,14 +497,14 @@ function VerifyStep({ d, onBack }: { d: Details; onBack: () => void }) {
     setError(null);
     try {
       await signInWithEmailAndPassword(
-        firebase().auth,
+        backend().auth,
         devEmail.trim(),
         devPass,
       );
       await done();
     } catch {
       setError(
-        "Emulator sign-in failed. Did you run the seed? Password is password123.",
+        "Test sign-in failed. Check the email and password.",
       );
     } finally {
       setBusy(null);
@@ -532,12 +521,6 @@ function VerifyStep({ d, onBack }: { d: Details; onBack: () => void }) {
         <p className="text-muted">
           Tap the link in the email to sign in. It expires in 1 hour.
         </p>
-        {DEV && (
-          <p className="rounded-md bg-surface-2 p-2 text-xs text-muted">
-            Emulator: open the link from the Emulator UI → Authentication
-            (localhost:4000).
-          </p>
-        )}
         <Button
           variant="ghost"
           disabled={cooldown > 0}

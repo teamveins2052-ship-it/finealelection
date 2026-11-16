@@ -94,7 +94,7 @@ export default function SettingsPage() {
         </Card>
         <Card className="space-y-2 border-danger/40 p-4 lg:col-span-2">
           <h2 className="font-semibold text-danger">Danger zone</h2>
-          <p className="text-sm text-muted">Admins are managed in the Firebase console (no in-app privilege escalation). PII teardown runs as a reviewed script after the official export — never from this panel.</p>
+          <p className="text-sm text-muted">Admins are managed in the Supabase table editor (admins table — no in-app privilege escalation). PII teardown runs as a reviewed script after the official export — never from this panel.</p>
         </Card>
       </div>
     </>

@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { onValue, ref } from "firebase/database";
+import { onValue, ref } from "@/lib/db/database";
 import type { ZodType } from "zod";
-import { firebase } from "@/lib/firebase/client";
+import { backend } from "@/lib/backend/client";
 import { RtTallySchema, RtWallSchema, type RtTally, type RtWall } from "@/lib/schema";
 import { z } from "zod";
 
@@ -15,7 +15,7 @@ export function useRtdb<T>(path: string, schema: ZodType<T>): { data: T | null; 
   const [state, setState] = useState<{ data: T | null; loading: boolean; error: boolean }>({ data: null, loading: true, error: false });
   useEffect(() => {
     const unsub = onValue(
-      ref(firebase().rtdb, path),
+      ref(backend().rtdb, path),
       (snap) => {
         const parsed = schema.safeParse(snap.val());
         setState({ data: parsed.success ? parsed.data : null, loading: false, error: false });

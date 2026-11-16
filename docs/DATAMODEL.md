@@ -1,5 +1,12 @@
 # NIAT Campus Elections 2026 — Data Model (DATAMODEL.md)
 
+> **⚠ Platform change (16 Nov 2026): the project now runs on Supabase, not Firebase.**
+> Data = Postgres tables (`supabase/migrations/`), security = RLS + `functions/src/rules.ts`,
+> live counts = `rt` table + Supabase Realtime, sign-in = Supabase Auth (Google / email link via
+> Brevo), uploads = Supabase Storage, hosting = Vercel. See **`docs/FREE_HOSTING.md`** for the
+> current setup and **`AGENTS.md`** for commands. Firebase-specific details below (emulators,
+> firestore.rules, Cloud Functions, RTDB, R2, seeds) are historical.
+
 > Companion to `PRD.md`, `DESIGN.md`, `TECHSTACK.md`. Follows the **TECHSTACK.md** architecture: votes in **Firestore**, counting done by a **Cloud Function**, live counts mirrored to **Realtime Database (RTDB)**.
 > Covers: every collection and field, who can read/write it, indexes, security rules, RTDB, Redis keys, R2 layout, Excel import mapping, lifecycles, invariants and retention.
 

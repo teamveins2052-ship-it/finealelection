@@ -1,6 +1,6 @@
-import { HttpsError, type CallableRequest } from "firebase-functions/v2/https";
-import { FieldValue } from "firebase-admin/firestore";
-import { db, ENFORCE_APP_CHECK, IS_EMULATOR } from "../lib/admin";
+import { HttpsError, type CallableRequest } from "../lib/callable";
+import { FieldValue } from "../lib/store";
+import { db, IS_EMULATOR } from "../lib/admin";
 
 export interface StudentCtx {
   niatId: string;
@@ -18,11 +18,12 @@ export interface AdminCtx {
 export const ADMIN_SESSION_SEC = 12 * 3600;
 
 /**
- * 2-step proof lives in a custom claim `mfa` equal to the token's `auth_time`. A new sign-in
- * changes auth_time, so every fresh login must pass the authenticator step again.
+ * 2-step proof: lib/auth.ts sets token.mfa = auth_time when this Supabase session has a
+ * _mfaSessions row (written after a correct code). A new sign-in is a new session, so every
+ * fresh login must pass the authenticator step again.
  */
 export function mfaVerified(req: CallableRequest): boolean {
-  const t = req.auth?.token as { mfa?: number; auth_time?: number } | undefined;
+  const t = req.auth?.token;
   return !!t && typeof t.mfa === "number" && t.mfa === t.auth_time;
 }
 
@@ -33,7 +34,6 @@ export async function studentMfaRequired(): Promise<boolean> {
 
 export function verifiedEmail(req: CallableRequest): string {
   if (!req.auth) throw new HttpsError("unauthenticated", "Sign in first.");
-  if (ENFORCE_APP_CHECK && !req.app) throw new HttpsError("failed-precondition", "App verification failed."); // P-APP-01
   const { email, email_verified } = req.auth.token;
   if (!email || email_verified !== true) throw new HttpsError("permission-denied", "Email not verified.");
   return email.toLowerCase();
@@ -76,7 +76,7 @@ export async function requireAdmin(req: CallableRequest): Promise<AdminCtx> {
   const s = await db.doc("settings/election").get();
   const mfaReq = s.get("requireAdminMfa") === true;
   if (mfaReq && !mfaVerified(req)) throw new HttpsError("permission-denied", "Finish 2-step verification first.");
-  const authTime = Number((req.auth!.token as { auth_time?: number }).auth_time ?? 0);
+  const authTime = Number(req.auth!.token.auth_time ?? 0);
   if (authTime && Date.now() / 1000 - authTime > ADMIN_SESSION_SEC) {
     throw new HttpsError("unauthenticated", "Your admin session expired. Sign in again.");
   }
@@ -89,7 +89,7 @@ export async function requireVoterAdmin(req: CallableRequest): Promise<AdminCtx>
   return admin;
 }
 
-/** Firestore-backed fixed-window limiter for callables (Redis is used on the edge). */
+/** Database-backed fixed-window limiter for callables (Redis is used on the edge). */
 export async function rateLimit(key: string, max: number, windowSec: number): Promise<void> {
   const bucket = Math.floor(Date.now() / (windowSec * 1000));
   const ref = db.doc(`_rateLimits/${key.replace(/[/.]/g, "_")}_${bucket}`);

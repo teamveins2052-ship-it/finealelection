@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, serverTimestamp, setDoc, where } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, serverTimestamp, setDoc, where } from "@/lib/db/firestore";
 import { toast } from "sonner";
 import { ArrowLeft, Flame, HandHeart, ImageOff, Lock, MessageCircleQuestion, Users, Vote } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
@@ -17,7 +17,7 @@ import { useVotedPositions } from "@/hooks/use-my-votes";
 import { useTallies } from "@/hooks/use-realtime";
 import { useSession } from "@/hooks/use-session";
 import { call, errorMessage, getNominee, getPositions, invalidate } from "@/lib/client-data";
-import { firebase } from "@/lib/firebase/client";
+import { backend } from "@/lib/backend/client";
 import { canVote, pct } from "@/lib/election";
 import { AskQuestionInput, ids } from "@/lib/schema";
 import { conv } from "@/lib/schema/converters";
@@ -150,7 +150,7 @@ export default function NomineePage() {
 function Reactions({ nomineeId, niatId, initial }: { nomineeId: string; niatId: string; initial: { fire: number; clap: number } }) {
   const [mine, setMine] = useState<"fire" | "clap" | null>(null);
   const [counts, setCounts] = useState(initial);
-  const ref = doc(firebase().db, "reactions", ids.reaction(niatId, nomineeId));
+  const ref = doc(backend().db, "reactions", ids.reaction(niatId, nomineeId));
 
   useEffect(() => {
     // Reading a reaction we never made is denied by rules (P-RCT-01) → treat as none.
@@ -205,7 +205,7 @@ function Reactions({ nomineeId, niatId, initial }: { nomineeId: string; niatId: 
 function Posts({ nomineeId }: { nomineeId: string }) {
   const posts = useAsync(async () => {
     const snap = await getDocs(
-      query(collection(firebase().db, "posts").withConverter(conv.post), where("nomineeId", "==", nomineeId), where("deleted", "==", false), orderBy("createdAt", "desc")),
+      query(collection(backend().db, "posts").withConverter(conv.post), where("nomineeId", "==", nomineeId), where("deleted", "==", false), orderBy("createdAt", "desc")),
     );
     const now = Date.now();
     return snap.docs.map((d) => d.data()).filter((p) => p.type !== "story" && (!p.expiresAt || p.expiresAt.toMillis() > now));
@@ -255,7 +255,7 @@ function Posts({ nomineeId }: { nomineeId: string }) {
 function QandA({ nomineeId, firstName, isSelf }: { nomineeId: string; firstName: string; isSelf: boolean }) {
   const qs = useAsync(async () => {
     const snap = await getDocs(
-      query(collection(firebase().db, "questions").withConverter(conv.question), where("nomineeId", "==", nomineeId), where("hidden", "==", false), orderBy("createdAt", "desc")),
+      query(collection(backend().db, "questions").withConverter(conv.question), where("nomineeId", "==", nomineeId), where("hidden", "==", false), orderBy("createdAt", "desc")),
     );
     const all = snap.docs.map((d) => d.data());
     return [...all.filter((q) => q.answer), ...all.filter((q) => !q.answer)];

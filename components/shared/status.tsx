@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, getDocs, query, where, type Timestamp } from "firebase/firestore";
+import { collection, getDocs, query, where, type Timestamp } from "@/lib/db/firestore";
 import { AlertTriangle, CheckCircle2, Info, PauseCircle, WifiOff, X } from "lucide-react";
-import { firebase } from "@/lib/firebase/client";
+import { backend } from "@/lib/backend/client";
 import { fmtCountdown } from "@/lib/election";
 import { useElection, useNow } from "@/hooks/use-election";
 import { cn } from "@/lib/utils";
@@ -24,7 +24,7 @@ export function Banners({ className }: { className?: string }) {
   useEffect(() => {
     setHidden(JSON.parse(sessionStorage.getItem("niat.hiddenBanners") ?? "[]"));
     const now = Date.now();
-    getDocs(query(collection(firebase().db, "banners"), where("active", "==", true)))
+    getDocs(query(collection(backend().db, "banners"), where("active", "==", true)))
       .then((snap) =>
         setItems(
           snap.docs

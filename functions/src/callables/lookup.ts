@@ -1,4 +1,4 @@
-import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { onCall, HttpsError } from "../lib/callable";
 import { db, callOpts } from "../lib/admin";
 import { rateLimit, verifyTurnstile } from "../auth/guards";
 import { CheckEmailInput, DirectoryEntrySchema, LookupInput } from "../schema";

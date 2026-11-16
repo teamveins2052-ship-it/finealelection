@@ -7,7 +7,7 @@
 
 ## 1. Project in 5 lines
 
-NIAT Campus Elections 2026: a mobile-first voting site for ~1,500 students. Login = NIAT ID → masked details → Google or email link matching the official sheet. One vote per position (6–7 clubs), live anonymous counts, Instagram-style nominee profiles, admin panel. Stack: **Next.js 15 (App Router) on Cloudflare Workers (OpenNext) · Firebase Auth + Firestore + Realtime Database + Cloud Functions · Upstash Redis · Cloudflare R2 · Brevo**.
+NIAT Campus Elections 2026: a mobile-first voting site for ~1,500 students. Login = NIAT ID → masked details → Google or email link matching the official sheet. One vote per position (6–7 clubs), live anonymous counts, Instagram-style nominee profiles, admin panel. Stack: **Next.js 15 (App Router) on Vercel · Supabase (Postgres + Auth + Realtime + Storage) · Brevo**. No Firebase anywhere — see `docs/FREE_HOSTING.md` for how it fits together.
 **Hard deadlines:** code freeze **18 Nov 2026, 22:00 IST** · voting **19–20 Nov** · site shuts down **23 Nov**.
 
 ---
@@ -34,21 +34,18 @@ All specs live in `docs/`. Read **`docs/MASTER.md` first** — §3 says which do
 
 ```bash
 npm install
-npm run emulators                         # Firebase emulators (Auth, Firestore, RTDB, Functions)
-npm run seed:reset && npm run seed        # dev data; add --phase=campaign|voting|paused|closed|results
-npm run dev                               # http://localhost:3000
+npm run db:apply                          # create/upgrade Supabase tables (idempotent)
+npm run build && npm start                # http://localhost:3100 (settings in .env.local)
 
 npm run lint
 npx tsc --noEmit
 npx vitest run                            # unit
-firebase emulators:exec --only firestore "npx vitest run tests/rules"   # security rules
-npx playwright test                       # e2e
 
-cd functions && npm run build             # Cloud Functions typecheck/build
-npm run migrate:status
+npm run ops:verify                        # read-only health check of the Supabase project
+npm run ops:sync                          # rebuild live display, count missed votes, send queued email
 ```
 
-Test logins (emulator, password `password123`): `voter@niat.test`, `halfdone@niat.test`, `alldone@niat.test`, `pending@niat.test`, `nominee@niat.test`, `admin@niat.test`, `judge@niat.test` (voter-admin). Full list: `docs/SEEDDATA.md` §4.
+There is no emulator: local runs use the Supabase project in `.env.local`. Treat it as production.
 
 ---
 
@@ -59,15 +56,15 @@ app/(public)/        landing, login, auth callback
 app/(student)/       dashboard, vote/[positionId], nominee/[id], my-votes, results, profile
 app/(nominee)/studio nominee dashboard
 app/admin/           admin panel
-app/api/             edge route handlers (directory, cached public reads, media upload-url, og)
+app/api/             db (browser reads/writes) · fn/[name] (server actions) · media/upload-url · health · cron/tick
 components/          ui/ (shadcn) vote/ nominee/ admin/ shared/
 lib/schema/          Zod schemas + types + ids helpers  ← single source of truth for shapes
-lib/firebase/        client.ts (browser SDK), rest.ts (edge Firestore REST)
-lib/auth/            verify-token.ts (jose, edge)
-functions/src/       triggers/ callables/ auth/guards.ts
-scripts/             seed/ migrate/ backup.sh
-tests/               rules/ unit/ e2e/ load/
-firestore.rules  database.rules.json  firestore.indexes.json
+lib/db/              browser document API, auth, live data (Supabase-backed)
+lib/supabase/        browser Supabase client (auth + Realtime only)
+functions/src/       server code: rules.ts (security rules) · callables/ · auth/guards.ts · lib/store.ts (Postgres)
+supabase/migrations/ tables, RLS, triggers, Realtime, Storage bucket
+scripts/             ops/ supabase/
+tests/               unit/
 ```
 
 ---
@@ -76,10 +73,10 @@ firestore.rules  database.rules.json  firestore.indexes.json
 
 These protect the election. Breaking one is a blocker, not a style issue.
 
-1. **Never write to production.** No commands with `-P prod`, `niat-elections-prod`, or prod credentials. No `firebase deploy` to prod, no `wrangler deploy` to prod, no prod migrations. Prepare the change; the human deploys.
+1. **Never write to production without the human's OK.** The Supabase project in `.env.local` IS production. No data changes, migrations or deploys unless the human asked. Prepare the change; the human deploys.
 2. **Votes are append-only.** Never write code that updates or deletes `votes/*`. Never let a client write `tallies`, `auditLogs`, `directory`, counters, `status`, `isNominee`, `receiptCode` or `counted`.
-3. **Counting happens only in `onVoteCreated`** (idempotent via `counted` flag). Clients write the vote doc only.
-4. **Never weaken `firestore.rules` or `database.rules.json`** to make something work. If a feature needs access, add the narrowest rule, add tests in `tests/rules/`, and update `docs/RLSPOLICIES.md`.
+3. **Counting happens only in `countVote`** (`functions/src/triggers/on-vote-created.ts`, idempotent via `counted` flag). Clients write the vote doc only. A database trigger also blocks any vote update/delete.
+4. **Never weaken `functions/src/rules.ts` or the RLS setup** in `supabase/migrations/` (RLS on, no browser policies except `rt` public nodes and `_changes`) to make something work. Add the narrowest rule, add a test, and update `docs/RLSPOLICIES.md`.
 5. **No identity leaks.** Never put voter identity in data readable by students or nominees. Q&A/comment authors go only in `questionAuthors` / `commentAuthors`. Badges and share images never include the nominee voted for.
 6. **No unmasked PII before login.** Pre-login responses use the `directory` masked fields only, via the rate-limited API.
 7. **Every input goes through Zod** from `lib/schema` — client forms, API routes and callables. Never hand-build IDs: use `ids.vote()`, `ids.nominee()`, etc.
@@ -94,14 +91,13 @@ These protect the election. Breaking one is a blocker, not a style issue.
 
 | Gotcha | Do this |
 |---|---|
-| `firebase-admin` doesn't run on Cloudflare's edge runtime | In `app/api/*` use `lib/firebase/rest.ts` (Firestore REST) and `lib/auth/verify-token.ts` (jose). Admin SDK only in `functions/` and `scripts/` |
-| Workers free plan: ~100k requests/day, low CPU per request | Keep student pages as client components on a static shell; no polling APIs; heavy work goes to Functions |
-| Live counts | Subscribe to RTDB `/tallies`, `/wall`, `/election` via `hooks/useTallies` etc. Never poll |
-| Firestore listeners cost reads per client | Students: listen only to their own docs. Admins may use broader listeners |
+| Database access | Server only (`functions/src/lib/store.ts`, node-postgres via the Supabase pooler). Routes that use it must be `runtime = "nodejs"` |
+| Browser data | Through `lib/db/*` → `/api/db` (rules) or `/api/fn` (actions). The browser Supabase client is for sign-in and Realtime only |
+| Live counts | `rt` table via Supabase Realtime (`hooks/use-realtime`). Rebuilt at most every 8 s (`lib/live.ts`) — free plan: 2M messages/month, 200 connections. Never poll |
+| Listeners | Each `onSnapshot` re-reads through the server on a `_changes` ping. Students: listen only to their own docs |
 | `xlsx` from npm is outdated | SheetJS is installed from the CDN tarball (see TECHSTACK §3) |
-| Upstash | Use `@upstash/redis` (HTTP). Normal TCP Redis clients won't work on the edge |
-| R2 uploads | Browser uploads directly with a presigned URL from `/api/media/upload-url`; compress images client-side first |
-| Function triggers are at-least-once | Make every trigger idempotent |
+| Uploads | Browser uploads to Supabase Storage (`media` bucket) with a signed URL from `/api/media/upload-url`; compress images first |
+| Background work is best-effort | `runTick` runs after requests + daily cron. Everything it does must be idempotent |
 | Single tally doc per position | Writes go through a transaction; if contention appears, switch to sharded counters (DATAMODEL §8) |
 | Time zone | Store UTC, display `Asia/Kolkata` with `date-fns-tz` |
 
@@ -126,17 +122,16 @@ These protect the election. Breaking one is a blocker, not a style issue.
 ### Add or change a field
 1. Update `docs/SCHEMA.md` (field table + Zod) and `lib/schema/*`.
 2. Update `docs/DATAMODEL.md` if structure/flow changes.
-3. Update `firestore.rules` + `docs/RLSPOLICIES.md`; add/adjust `tests/rules/` cases.
-4. Add indexes to `firestore.indexes.json` if queried.
-5. If existing data needs it: add a migration in `scripts/migrate/migrations/` (idempotent, dry-run aware) per `docs/MIGRATION.md`.
-6. Update seeds in `scripts/seed/` so dev data has the field.
+3. Update `functions/src/rules.ts` + `docs/RLSPOLICIES.md`; add a test.
+4. Add an index in a new `supabase/migrations/NNNN_*.sql` if queried (expression index on `data->'field'`), then `npm run db:apply`.
+5. If existing data needs it: a reviewed, idempotent SQL or script per `docs/MIGRATION.md`.
 New fields start **optional** (expand → migrate → contract).
 
-### Add a callable function
-`functions/src/callables/<name>.ts` → `onCall({ region: "asia-south1", enforceAppCheck: true })` → guard → `rateLimit` → `Input.parse(req.data)` → state checks (phase, active, ownership) → write (transaction if counters) → `audit()` → typed return. Export from `functions/src/index.ts`. Add a test.
+### Add a server action
+`functions/src/callables/<name>.ts` → `onCall(callOpts, …)` → guard → `rateLimit` → `Input.parse(req.data)` → state checks (phase, active, ownership) → write (`db.runTransaction` if counters) → `audit()` → typed return. Register it in `functions/src/http.ts`. Add a test.
 
-### Add an edge API route
-`app/api/<name>/route.ts`, `export const runtime = "edge"` (or OpenNext default), Zod-validate params, Upstash rate limit, Redis cache-aside for public reads, `verifyFirebaseToken` for authenticated routes. Return `{ error: { code, message } }` with correct status on failure.
+### Add an API route
+`app/api/<name>/route.ts`, `runtime = "nodejs"`, Zod-validate input, `verifyAccessToken` (functions/src/lib/auth.ts) for signed-in routes, `rateLimit`. Return `{ error: { code, message } }` with correct status on failure.
 
 ### Add a screen
 Check the screen spec in `DESIGN.md` §6/§7 → build with existing components → implement all states → mobile 360 px first, then `md`/`lg` → light + dark → keyboard pass.
@@ -147,11 +142,11 @@ Check the screen spec in `DESIGN.md` §6/§7 → build with existing components 
 
 - [ ] Matches the spec (feature ID from PRD §3 referenced in the PR/commit)
 - [ ] `npm run lint` and `npx tsc --noEmit` clean (app **and** `functions/`)
-- [ ] Unit tests for logic; **rules tests** for any rules change; e2e for user flows touched
+- [ ] Unit tests for logic, including any change to `functions/src/rules.ts`; e2e for user flows touched
 - [ ] All UI states handled; works at 360 px; light/dark; keyboard
 - [ ] No new client write paths to server-owned data; no PII leaks; inputs Zod-validated
 - [ ] Docs updated in the same change if data/rules/architecture changed
-- [ ] Seed data still runs: `npm run seed:reset && npm run seed`
+- [ ] `npm run ops:verify` still passes
 - [ ] Short summary of what changed + anything the human must do (env var, deploy step, migration)
 
 ---

@@ -1,11 +1,10 @@
-import { onCall, HttpsError, type CallableRequest } from "firebase-functions/v2/https";
-import { getAuth } from "firebase-admin/auth";
-import { FieldValue, type Timestamp } from "firebase-admin/firestore";
-import { db, callOpts, IS_EMULATOR } from "../lib/admin";
+import { onCall, HttpsError, type CallableRequest } from "../lib/callable";
+import { FieldValue, type Timestamp } from "../lib/store";
+import { db, callOpts } from "../lib/admin";
 
-// Deployed functions only see a Secret Manager secret they declare. The emulator uses the dev key.
-const mfaOpts = { ...callOpts, secrets: IS_EMULATOR ? [] : ["MFA_ENCRYPTION_KEY"] };
-import { audit, rateLimit, requireAdmin, studentMfaRequired, verifiedEmail } from "../auth/guards";
+// Authenticator secrets are encrypted with MFA_ENCRYPTION_KEY (lib/totp.ts).
+const mfaOpts = callOpts;
+import { audit, mfaVerified, rateLimit, requireAdmin, studentMfaRequired, verifiedEmail } from "../auth/guards";
 import {
   currentStep, decryptSecret, encryptSecret, hashBackupCode, newBackupCodes, newSecret, otpauthUri, verifyTotp,
 } from "../lib/totp";
@@ -19,6 +18,7 @@ interface Account {
   email: string;
   role: "admin" | "student";
   authTime: number;
+  sessionId: string;
   required: boolean;
 }
 
@@ -26,15 +26,17 @@ interface Account {
 async function requireAccount(req: CallableRequest): Promise<Account> {
   const email = verifiedEmail(req);
   const uid = req.auth!.uid;
-  const authTime = Number((req.auth!.token as { auth_time?: number }).auth_time ?? 0);
-  if ((await db.doc(`admins/${email}`).get()).exists) return { uid, email, role: "admin", authTime, required: true };
+  const authTime = Number(req.auth!.token.auth_time ?? 0);
+  const sessionId = String(req.auth!.token.session_id ?? "");
+  if (!sessionId) throw new HttpsError("unauthenticated", "Sign in again.");
+  if ((await db.doc(`admins/${email}`).get()).exists) return { uid, email, role: "admin", authTime, sessionId, required: true };
   const s = await db.collection("students").where("email", "==", email).limit(2).get();
   if (s.size !== 1 || s.docs[0].get("status") !== "active") {
     throw new HttpsError("permission-denied", "This account can't sign in right now.");
   }
   // Students: required when the election setting says so, OR when they opted in themselves.
   const optedIn = s.docs[0].get("mfaEnabled") === true;
-  return { uid, email, role: "student", authTime, required: optedIn || (await studentMfaRequired()) };
+  return { uid, email, role: "student", authTime, sessionId, required: optedIn || (await studentMfaRequired()) };
 }
 
 const mfaRef = (uid: string) => db.doc(`mfa/${uid}`);
@@ -45,10 +47,14 @@ async function setStudentMfaFlag(email: string, on: boolean) {
   if (!s.empty) await s.docs[0].ref.update({ mfaEnabled: on, updatedAt: FieldValue.serverTimestamp() });
 }
 
-/** Proof bound to this sign-in: the claim must equal the token's auth_time (see guards.mfaVerified). */
-async function grantSession(uid: string, authTime: number) {
-  const user = await getAuth().getUser(uid);
-  await getAuth().setCustomUserClaims(uid, { ...(user.customClaims ?? {}), mfa: authTime });
+/**
+ * Proof bound to THIS sign-in: a row keyed by the Supabase session id. A new sign-in gets a
+ * new session id, so every fresh login must pass 2-step again (lib/auth.ts reads it).
+ */
+async function grantSession(me: Account) {
+  await db.doc(`_mfaSessions/${me.sessionId}`).set({
+    uid: me.uid, email: me.email, authTime: me.authTime, at: FieldValue.serverTimestamp(),
+  });
 }
 
 export const mfaStatus = onCall(mfaOpts, async (req) => {
@@ -58,6 +64,7 @@ export const mfaStatus = onCall(mfaOpts, async (req) => {
   return {
     role: me.role,
     required: me.required,
+    verified: mfaVerified(req), // this sign-in already passed 2-step
     enrolled: snap.get("enabled") === true,
     backupCodesLeft: ((snap.get("backupHashes") as string[] | undefined) ?? []).length,
     lockedUntil: lockedUntil > Date.now() ? lockedUntil : null,
@@ -96,7 +103,7 @@ export const mfaEnrollConfirm = onCall(mfaOpts, async (req) => {
     backupHashes: backupCodes.map(hashBackupCode), failCount: 0, lockedUntil: null,
     enrolledAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
   }, { merge: true });
-  await grantSession(me.uid, me.authTime);
+  await grantSession(me);
   // Opt-in flag on the student record: from now on rules + guards demand the code for them (P-MFA-05).
   if (me.role === "student") await setStudentMfaFlag(me.email, true);
   await audit(me.email, me.role, "mfa_enrolled", `mfa/${me.uid}`);
@@ -154,7 +161,7 @@ export const mfaVerify = onCall(mfaOpts, async (req) => {
     }
     throw new HttpsError("invalid-argument", `Wrong code. ${outcome.attemptsLeft} ${outcome.attemptsLeft === 1 ? "try" : "tries"} left.`);
   }
-  await grantSession(me.uid, me.authTime);
+  await grantSession(me);
   await audit(me.email, me.role, "mfa_verified", `mfa/${me.uid}`, { backup: outcome.usedBackup });
   return { ok: true, usedBackup: outcome.usedBackup, backupCodesLeft: outcome.left, step: currentStep() };
 });
@@ -164,18 +171,14 @@ export const mfaReset = onCall(mfaOpts, async (req) => {
   const admin = await requireAdmin(req);
   const { email } = MfaResetInput.parse(req.data);
   if (email === admin.email) throw new HttpsError("failed-precondition", "Ask another admin to reset your own 2-step.");
-  let uid: string;
-  try {
-    uid = (await getAuth().getUserByEmail(email)).uid;
-  } catch {
-    throw new HttpsError("not-found", "That person hasn't signed in yet — nothing to reset.");
-  }
-  await mfaRef(uid).delete();
-  const user = await getAuth().getUser(uid);
-  const claims = { ...(user.customClaims ?? {}) };
-  delete claims.mfa;
-  await getAuth().setCustomUserClaims(uid, claims);
-  await getAuth().revokeRefreshTokens(uid); // sign them out everywhere
+  const enrolled = await db.collection("mfa").where("email", "==", email).limit(5).get();
+  const sessions = await db.collection("_mfaSessions").where("email", "==", email).get();
+  if (enrolled.empty && sessions.empty) throw new HttpsError("not-found", "That person hasn't set up 2-step — nothing to reset.");
+  const uid = enrolled.docs[0]?.id ?? (sessions.docs[0]?.get("uid") as string);
+  const batch = db.batch();
+  enrolled.docs.forEach((d) => batch.delete(d.ref));
+  sessions.docs.forEach((d) => batch.delete(d.ref)); // every signed-in device loses its 2-step proof
+  await batch.commit();
   await setStudentMfaFlag(email, false); // back to "optional, not set up" (no-op for admins)
   await audit(admin.email, "admin", "mfa_reset", `mfa/${uid}`, { email });
   return { ok: true };

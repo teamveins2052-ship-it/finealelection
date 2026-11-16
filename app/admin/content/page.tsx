@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, doc, limit, onSnapshot, orderBy, query, updateDoc } from "firebase/firestore";
+import { collection, doc, limit, onSnapshot, orderBy, query, updateDoc } from "@/lib/db/firestore";
 import { toast } from "sonner";
 import { Flag } from "lucide-react";
 import { PageTitle } from "@/components/admin/shell";
@@ -9,7 +9,7 @@ import { useAdminData } from "@/components/admin/data";
 import { Button } from "@/components/ui/button";
 import { Card, Chip, EmptyState, Skeleton } from "@/components/ui/primitives";
 import { useSession } from "@/hooks/use-session";
-import { firebase } from "@/lib/firebase/client";
+import { backend } from "@/lib/backend/client";
 import { fmtIST } from "@/lib/election";
 import { conv, type WithId } from "@/lib/schema/converters";
 import type { Post, Question } from "@/lib/schema";
@@ -24,7 +24,7 @@ export default function ContentPage() {
   const [posts, setPosts] = useState<WithId<Post>[] | null>(null);
 
   useEffect(() => {
-    const { db } = firebase();
+    const { db } = backend();
     const u1 = onSnapshot(query(collection(db, "questions").withConverter(conv.question), orderBy("createdAt", "desc"), limit(200)), (s) => setQuestions(s.docs.map((d) => d.data())), () => setQuestions([]));
     const u2 = onSnapshot(query(collection(db, "posts").withConverter(conv.post), orderBy("createdAt", "desc"), limit(200)), (s) => setPosts(s.docs.map((d) => d.data())), () => setPosts([]));
     return () => { u1(); u2(); };
@@ -51,7 +51,7 @@ export default function ContentPage() {
                 {q.answer && <p className="text-sm text-muted">↳ {q.answer}</p>}
               </div>
               {q.hidden && <Chip>hidden</Chip>}
-              <Button size="sm" variant={q.hidden ? "outline" : "destructive"} onClick={() => updateDoc(doc(firebase().db, "questions", q._id), { hidden: !q.hidden }).then(() => toast.success(q.hidden ? "Restored" : "Hidden")).catch(() => toast.error("Couldn't update"))}>
+              <Button size="sm" variant={q.hidden ? "outline" : "destructive"} onClick={() => updateDoc(doc(backend().db, "questions", q._id), { hidden: !q.hidden }).then(() => toast.success(q.hidden ? "Restored" : "Hidden")).catch(() => toast.error("Couldn't update"))}>
                 {q.hidden ? "Unhide" : "Hide"}
               </Button>
             </Card>
@@ -68,7 +68,7 @@ export default function ContentPage() {
                 <p className="truncate text-xs text-muted">{name(p.nomineeId)} · {p.type}</p>
                 {p.caption && <p className="line-clamp-2 text-xs">{p.caption}</p>}
                 {p.deleted ? <Chip>deleted</Chip> : (
-                  <Button size="sm" variant="destructive" className="w-full" onClick={() => updateDoc(doc(firebase().db, "posts", p._id), { deleted: true, deletedBy: email }).then(() => toast.success("Post removed")).catch(() => toast.error("Couldn't remove"))}>Delete</Button>
+                  <Button size="sm" variant="destructive" className="w-full" onClick={() => updateDoc(doc(backend().db, "posts", p._id), { deleted: true, deletedBy: email }).then(() => toast.success("Post removed")).catch(() => toast.error("Couldn't remove"))}>Delete</Button>
                 )}
               </div>
             </Card>

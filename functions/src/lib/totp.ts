@@ -88,10 +88,10 @@ export const hashBackupCode = (c: string) => createHash("sha256").update(`niat-m
 
 // ---------- secret encryption at rest (AES-256-GCM) ----------
 /**
- * TOTP secrets are encrypted before they touch Firestore, so a database export alone can't
+ * TOTP secrets are encrypted before they touch the database, so a database export alone can't
  * mint codes. Key comes from the MFA_ENCRYPTION_KEY secret (32 bytes, base64).
  */
-const DEV_KEY = Buffer.alloc(32, 7); // emulator/seed only — never used when a real key is configured
+const DEV_KEY = Buffer.alloc(32, 7); // unit tests only — never used when a real key is configured
 export function encryptionKey(): Buffer {
   const raw = process.env.MFA_ENCRYPTION_KEY;
   if (raw) {
@@ -99,7 +99,7 @@ export function encryptionKey(): Buffer {
     if (k.length !== 32) throw new Error("MFA_ENCRYPTION_KEY must be 32 bytes (base64)");
     return k;
   }
-  if (process.env.FUNCTIONS_EMULATOR === "true" || process.env.FIRESTORE_EMULATOR_HOST) return DEV_KEY;
+  if (process.env.VITEST) return DEV_KEY;
   throw new Error("MFA_ENCRYPTION_KEY is not configured");
 }
 

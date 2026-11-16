@@ -14,7 +14,7 @@ type Segment = "all" | "not_voted_any" | "not_voted_all" | "position";
 interface Status { accounts: { sender: string; sentToday: number; full: boolean }[]; dailyCapPerAccount: number; waiting: number }
 
 /**
- * Brevo emails (sign-in links are sent by Firebase, not here). Two Brevo accounts switch
+ * Brevo emails (sign-in links are sent too, straight away — see callables/login.ts). Two Brevo accounts switch
  * automatically; anything over today's limit waits in the queue and sends the next day.
  */
 export default function EmailsPage() {
@@ -35,7 +35,7 @@ export default function EmailsPage() {
         <Button variant="outline" size="sm" onClick={loadStatus}><RefreshCw className="size-4" /> Refresh</Button>
       </PageTitle>
       <p className="mb-4 text-sm text-muted">
-        Welcome emails (first sign-in) and &ldquo;I voted&rdquo; stickers (all clubs voted) send automatically. Sign-in links come from Firebase.
+        Welcome emails (first sign-in) and &ldquo;I voted&rdquo; stickers (all clubs voted) send automatically. Sign-in links are sent through the same Brevo accounts.
         Vote receipts stay in the app (My Votes).
       </p>
 

@@ -1,15 +1,15 @@
-import { FieldValue, type DocumentReference } from "firebase-admin/firestore";
+import { FieldValue, type DocumentReference } from "./store";
 import { db } from "./admin";
 import { APP_URL, sendEmail } from "./helpers";
 
 /**
  * Brevo email outbox. Every app email (welcome, sticker, announcement, reminder, correction)
  * goes through here:
- *   1. a doc is written to `_mailQueue` (server-only — catch-all deny rule),
+ *   1. a row is written to `_mail_queue` (server-only — no browser access),
  *   2. we try to send immediately (switching Brevo accounts automatically),
- *   3. if every account is at today's limit, the doc stays "queued" and the scheduled
- *      `drainMailQueue` function sends it later — nobody is silently dropped.
- * Login / sign-in-link emails are NOT here: Firebase Auth sends those itself.
+ *   3. if every account is at today's limit, the row stays "queued" and runTick
+ *      (tick.ts) sends it later — nobody is silently dropped.
+ * Sign-in-link emails are NOT queued: callables/login.ts sends them immediately.
  */
 export type MailKind = "welcome" | "sticker" | "announcement" | "reminder" | "correction";
 

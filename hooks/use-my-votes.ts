@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { doc, onSnapshot } from "firebase/firestore";
-import { firebase } from "@/lib/firebase/client";
+import { doc, onSnapshot } from "@/lib/db/firestore";
+import { backend } from "@/lib/backend/client";
 import { conv, type WithId } from "@/lib/schema/converters";
 import { ids, type Vote } from "@/lib/schema";
 import { useSession } from "./use-session";
@@ -50,7 +50,7 @@ export function useMyVote(positionId: string, known: boolean) {
   useEffect(() => {
     if (!niatId || !known) return;
     return onSnapshot(
-      doc(firebase().db, "votes", ids.vote(niatId, positionId)).withConverter(conv.vote),
+      doc(backend().db, "votes", ids.vote(niatId, positionId)).withConverter(conv.vote),
       { includeMetadataChanges: true },
       (snap) => setVote(snap.exists() ? snap.data() : null),
       () => setVote(null),

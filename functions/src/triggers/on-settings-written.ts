@@ -1,18 +1,10 @@
-import { onDocumentWritten } from "firebase-functions/v2/firestore";
-import type { DocumentData, Timestamp } from "firebase-admin/firestore";
-import { db, rtdb, REGION } from "../lib/admin";
+import type { DocumentData, Timestamp } from "../lib/store";
+import { db, rtdb } from "../lib/admin";
 import { audit } from "../auth/guards";
 
 /**
- * Admins write settings directly (P-SET-02), so this trigger guarantees every change is
- * audited and mirrors the flags students need instantly to RTDB /election.
- */
-export const onSettingsWritten = onDocumentWritten({ document: "settings/election", region: REGION }, async (event) => {
-  await mirrorSettings(event.data?.before.data(), event.data?.after.data());
-});
-
-/**
- * Free-hosting path (no triggers): compare settings/election with the last copy we mirrored
+ * Admins write settings directly (P-SET-02); this guarantees every change is audited and
+ * mirrors the flags students need to the public live node rt.election. Compare settings/election with the last copy we mirrored
  * (_meta/settingsMirror) and run the same mirror + audit. Idempotent — an unchanged
  * document audits nothing.
  */

@@ -1,5 +1,12 @@
 # NIAT Campus Elections 2026 — Migrations (MIGRATION.md)
 
+> **⚠ Platform change (16 Nov 2026): the project now runs on Supabase, not Firebase.**
+> Data = Postgres tables (`supabase/migrations/`), security = RLS + `functions/src/rules.ts`,
+> live counts = `rt` table + Supabase Realtime, sign-in = Supabase Auth (Google / email link via
+> Brevo), uploads = Supabase Storage, hosting = Vercel. See **`docs/FREE_HOSTING.md`** for the
+> current setup and **`AGENTS.md`** for commands. Firebase-specific details below (emulators,
+> firestore.rules, Cloud Functions, RTDB, R2, seeds) are historical.
+
 > Companion to `DATAMODEL.md`, `SCHEMA.md`, `RLSPOLICIES.md`, `SEEDDATA.md`.
 > Firestore has no built-in migrations (no `prisma migrate`), so this defines **how data and schema change safely**: a versioned migration runner, backups, the real-student import, deploy order for rules/indexes/functions, election-day freeze, emergency repair migrations, and the post-election teardown.
 

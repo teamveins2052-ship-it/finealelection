@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { doc, onSnapshot, type Timestamp } from "firebase/firestore";
-import { firebase } from "@/lib/firebase/client";
+import { doc, onSnapshot, type Timestamp } from "@/lib/db/firestore";
+import { backend } from "@/lib/backend/client";
 import { phaseOf, type ClientPhase, type PublicSettings } from "@/lib/election";
 
 type State = { status: "loading" } | { status: "error" } | { status: "ready"; settings: PublicSettings; phase: ClientPhase };
@@ -18,7 +18,7 @@ function start() {
   started = true;
   // settings/election is public-read (P-SET-01) and changes rarely → one cheap listener per client.
   onSnapshot(
-    doc(firebase().db, "settings", "election"),
+    doc(backend().db, "settings", "election"),
     (snap) => {
       if (!snap.exists()) return emit({ status: "error" });
       const d = snap.data();

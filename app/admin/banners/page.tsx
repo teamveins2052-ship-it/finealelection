@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc, type Timestamp } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc, type Timestamp } from "@/lib/db/firestore";
 import { fromZonedTime, formatInTimeZone } from "date-fns-tz";
 import { toast } from "sonner";
 import { Megaphone, Plus } from "lucide-react";
@@ -9,7 +9,7 @@ import { PageTitle } from "@/components/admin/shell";
 import { Button } from "@/components/ui/button";
 import { Card, Chip, EmptyState, Input, Label, Skeleton } from "@/components/ui/primitives";
 import { useSession } from "@/hooks/use-session";
-import { firebase } from "@/lib/firebase/client";
+import { backend } from "@/lib/backend/client";
 import { TZ, fmtIST } from "@/lib/election";
 
 interface B { id: string; variant: "info" | "warning" | "success" | "image"; text: string; link?: string; imageUrl?: string; startsAt: Timestamp; endsAt: Timestamp; active: boolean }
@@ -22,7 +22,7 @@ export default function BannersPage() {
   const [form, setForm] = useState({ variant: "info" as B["variant"], text: "", link: "", imageUrl: "", startsAt: toLocal(Date.now()), endsAt: toLocal(Date.now() + 86400_000) });
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => onSnapshot(query(collection(firebase().db, "banners"), orderBy("startsAt", "desc")), (s) => setItems(s.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<B, "id">) }))), () => setItems([])), []);
+  useEffect(() => onSnapshot(query(collection(backend().db, "banners"), orderBy("startsAt", "desc")), (s) => setItems(s.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<B, "id">) }))), () => setItems([])), []);
 
   const create = async () => {
     if (!form.text.trim() || form.text.length > 160) return toast.error("Banner text is required (max 160 characters).");
@@ -32,7 +32,7 @@ export default function BannersPage() {
     if (form.variant === "image" && !form.imageUrl) return toast.error("Image banners need an image URL.");
     setBusy(true);
     try {
-      await addDoc(collection(firebase().db, "banners"), {
+      await addDoc(collection(backend().db, "banners"), {
         variant: form.variant, text: form.text.trim(), ...(form.link ? { link: form.link } : {}), ...(form.imageUrl ? { imageUrl: form.imageUrl } : {}),
         startsAt, endsAt, active: true, createdBy: session.status === "ready" ? session.email : "", createdAt: serverTimestamp(),
       });
@@ -61,8 +61,8 @@ export default function BannersPage() {
                   <p className="text-xs text-muted">{b.variant} · {fmtIST(b.startsAt.toMillis())} → {fmtIST(b.endsAt.toMillis())}</p>
                 </div>
                 <Chip tone={live ? "success" : "neutral"}>{live ? "live" : b.active ? "scheduled" : "off"}</Chip>
-                <Button size="sm" variant="outline" onClick={() => updateDoc(doc(firebase().db, "banners", b.id), { active: !b.active })}>{b.active ? "Turn off" : "Turn on"}</Button>
-                <Button size="sm" variant="ghost" onClick={() => confirm("Delete this banner?") && deleteDoc(doc(firebase().db, "banners", b.id))}>Delete</Button>
+                <Button size="sm" variant="outline" onClick={() => updateDoc(doc(backend().db, "banners", b.id), { active: !b.active })}>{b.active ? "Turn off" : "Turn on"}</Button>
+                <Button size="sm" variant="ghost" onClick={() => confirm("Delete this banner?") && deleteDoc(doc(backend().db, "banners", b.id))}>Delete</Button>
               </Card>
             );
           })}

@@ -1,6 +1,7 @@
-import { onCall, HttpsError } from "firebase-functions/v2/https";
-import { FieldValue, type Timestamp } from "firebase-admin/firestore";
-import { db, rtdb, callOpts } from "../lib/admin";
+import { onCall, HttpsError } from "../lib/callable";
+import { FieldValue, type Timestamp } from "../lib/store";
+import { db, callOpts } from "../lib/admin";
+import { flushLive } from "../lib/live";
 import { audit, requireAdmin, requireVoterAdmin } from "../auth/guards";
 import { directoryEntry, emailUniqueOrThrow, refreshEligible } from "../lib/helpers";
 import { announcementEmail, correctionEmail, queueEmail, reminderEmail } from "../lib/mailer";
@@ -22,7 +23,7 @@ function normaliseRow(raw: Record<string, unknown>): Record<string, unknown> {
 }
 
 /** P-FN-04. Upsert by NIAT ID; never touches status/votes/nominee flags of existing students (DATAMODEL §11). */
-export const importStudents = onCall({ ...callOpts, timeoutSeconds: 300, memory: "512MiB" }, async (req) => {
+export const importStudents = onCall(callOpts, async (req) => {
   const admin = await requireAdmin(req);
   const { rows } = ImportStudentsInput.parse(req.data);
   return importRows(rows, admin.email);
@@ -242,7 +243,7 @@ export const getVotersForNominee = onCall(callOpts, async (req) => {
 });
 
 /** D7: nudge non-voters. dryRun (default) only counts; real sends respect the Brevo daily cap. */
-export const sendReminders = onCall({ ...callOpts, timeoutSeconds: 300 }, async (req) => {
+export const sendReminders = onCall(callOpts, async (req) => {
   const admin = await requireAdmin(req);
   const input = SendRemindersInput.parse(req.data);
   const positions = await db.collection("positions").where("active", "==", true).get();
@@ -274,21 +275,21 @@ export const sendReminders = onCall({ ...callOpts, timeoutSeconds: 300 }, async 
 export const recountPosition = onCall(callOpts, async (req) => {
   const admin = await requireAdmin(req);
   const { positionId } = RecountInput.parse(req.data);
-  const votes = await db.collection("votes").where("positionId", "==", positionId).select("nomineeId").get();
+  const votes = await db.collection("votes").where("positionId", "==", positionId).get();
   const nominees = await db.collection("nominees").where("positionId", "==", positionId).get();
   const counts: Record<string, number> = Object.fromEntries(nominees.docs.map((n) => [n.id, 0]));
   for (const v of votes.docs) counts[v.get("nomineeId") as string] = (counts[v.get("nomineeId") as string] ?? 0) + 1;
   const total = votes.size;
   const prev = await db.doc(`tallies/${positionId}`).get();
   await db.doc(`tallies/${positionId}`).set({ positionId, counts, total, updatedAt: FieldValue.serverTimestamp() });
-  await rtdb.ref(`tallies/${positionId}`).set({ counts, total, updatedAt: Date.now() });
+  await flushLive(true);
   const drift = ((prev.get("total") as number | undefined) ?? 0) - total;
   await audit(admin.email, "admin", "settings_changed", `tallies/${positionId}`, { op: "recount", total, drift });
   return { total, drift };
 });
 
 /** Promotion / announcement email to a segment of active students. Over-limit sends wait in the queue. */
-export const sendAnnouncement = onCall({ ...callOpts, timeoutSeconds: 540 }, async (req) => {
+export const sendAnnouncement = onCall(callOpts, async (req) => {
   const admin = await requireAdmin(req);
   const input = AnnouncementInput.parse(req.data);
   const positions = await db.collection("positions").where("active", "==", true).get();

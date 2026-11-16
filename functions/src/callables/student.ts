@@ -1,5 +1,5 @@
-import { onCall, HttpsError } from "firebase-functions/v2/https";
-import { FieldValue } from "firebase-admin/firestore";
+import { onCall, HttpsError } from "../lib/callable";
+import { FieldValue } from "../lib/store";
 import { db, callOpts } from "../lib/admin";
 import { audit, rateLimit, requireStudent, verifyTurnstile } from "../auth/guards";
 import { electionTimes } from "../lib/helpers";

@@ -1,5 +1,12 @@
 # NIAT Campus Elections 2026 — Schema Reference (SCHEMA.md)
 
+> **⚠ Platform change (16 Nov 2026): the project now runs on Supabase, not Firebase.**
+> Data = Postgres tables (`supabase/migrations/`), security = RLS + `functions/src/rules.ts`,
+> live counts = `rt` table + Supabase Realtime, sign-in = Supabase Auth (Google / email link via
+> Brevo), uploads = Supabase Storage, hosting = Vercel. See **`docs/FREE_HOSTING.md`** for the
+> current setup and **`AGENTS.md`** for commands. Firebase-specific details below (emulators,
+> firestore.rules, Cloud Functions, RTDB, R2, seeds) are historical.
+
 > **What this file is:** the field-by-field schema for every collection, plus copy-paste-ready **Zod schemas + TypeScript types** used by the app, Cloud Functions and API routes.
 > **What it isn't:** the reasoning, security rules, indexes and lifecycles live in `DATAMODEL.md`. If the two ever disagree, fix both — this file is the code contract.
 

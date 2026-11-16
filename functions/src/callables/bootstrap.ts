@@ -1,5 +1,5 @@
-import { onCall, HttpsError } from "firebase-functions/v2/https";
-import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import { onCall, HttpsError } from "../lib/callable";
+import { FieldValue, Timestamp } from "../lib/store";
 import { db, rtdb, callOpts } from "../lib/admin";
 import { audit, verifiedEmail } from "../auth/guards";
 
@@ -23,7 +23,7 @@ const ist = (s: string) => Timestamp.fromDate(new Date(`${s}:00+05:30`));
  *   1. the caller's *verified* email equals BOOTSTRAP_ADMIN_EMAIL (set by whoever deploys), and
  *   2. no admin exists yet.
  * After the first admin exists this function refuses forever — add more admins in the
- * Firebase console (RLSPOLICIES §10: no in-app privilege escalation).
+ * Supabase table editor (RLSPOLICIES §10: no in-app privilege escalation).
  */
 export const bootstrapElection = onCall(callOpts, async (req) => {
   const email = verifiedEmail(req);

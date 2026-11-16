@@ -6,7 +6,7 @@ import {
   type QueryDocumentSnapshot,
   type SnapshotOptions,
   type Firestore,
-} from "firebase/firestore";
+} from "@/lib/db/firestore";
 import type { ZodType } from "zod";
 import {
   StudentSchema,

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { addDoc, collection, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc, where } from "firebase/firestore";
+import { addDoc, collection, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc, where } from "@/lib/db/firestore";
 import { toast } from "sonner";
 import { CheckCircle2, Circle, Eye, Flame, HandHeart, ImagePlus, Lock, MessageCircleQuestion, Plus, Trash2, Upload } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, EmptyState, Label, Skeleton, Textarea } from "@/components/ui/primitives";
 import { useElection } from "@/hooks/use-election";
 import { useSession } from "@/hooks/use-session";
-import { firebase } from "@/lib/firebase/client";
+import { backend } from "@/lib/backend/client";
 import { invalidate } from "@/lib/client-data";
 import { ids, NomineeProfileInput, type Nominee, type Question } from "@/lib/schema";
 import { conv, type WithId } from "@/lib/schema/converters";
@@ -27,7 +27,7 @@ export default function StudioPage() {
 
   useEffect(() => {
     if (!nomineeId) return;
-    const { db } = firebase();
+    const { db } = backend();
     const u1 = onSnapshot(doc(db, "nominees", nomineeId).withConverter(conv.nominee), (s) => setNominee(s.exists() ? s.data() : null));
     const u2 = onSnapshot(
       query(collection(db, "questions").withConverter(conv.question), where("nomineeId", "==", nomineeId), where("hidden", "==", false), orderBy("createdAt", "desc")),
@@ -136,7 +136,7 @@ function ProfileEditor({ nominee, niatId, locked }: { nominee: WithId<Nominee>; 
     if (!data && !(photoUrl === nominee.photoUrl)) return toast.error(parsed.error?.issues[0]?.message ?? "Check your profile.");
     setBusy(true);
     try {
-      await updateDoc(doc(firebase().db, "nominees", nominee._id), {
+      await updateDoc(doc(backend().db, "nominees", nominee._id), {
         photoUrl: photoUrl ?? null,
         bio: bio.trim().slice(0, 300),
         promises: promises.map((p) => p.trim()).filter(Boolean).slice(0, 6).map((p) => p.slice(0, 120)),
@@ -157,7 +157,7 @@ function ProfileEditor({ nominee, niatId, locked }: { nominee: WithId<Nominee>; 
     if (f.size > 2 * 1024 * 1024) return toast.error("Images must be 2 MB or less.");
     setUploading(true);
     try {
-      setPhotoUrl(await uploadToR2(f, "avatar", niatId));
+      setPhotoUrl(await uploadMedia(f, "avatar", niatId));
       toast.success("Photo uploaded — tap Save to publish.");
     } catch (e) {
       toast.error((e as Error).message);
@@ -220,8 +220,8 @@ function PostUploader({ nominee, niatId, locked }: { nominee: WithId<Nominee>; n
     if (f.size > 2 * 1024 * 1024) return toast.error("Images must be 2 MB or less.");
     setBusy(true);
     try {
-      const mediaUrl = await uploadToR2(f, "post", niatId);
-      await addDoc(collection(firebase().db, "posts"), {
+      const mediaUrl = await uploadMedia(f, "post", niatId);
+      await addDoc(collection(backend().db, "posts"), {
         nomineeId: nominee._id, niatId, type: "photo", mediaUrl, caption: caption.trim().slice(0, 200),
         commentCount: 0, deleted: false, createdAt: serverTimestamp(),
       });
@@ -255,7 +255,7 @@ function AnswerCard({ q, locked }: { q: WithId<Question>; locked: boolean }) {
     if (!text.trim()) return;
     setBusy(true);
     try {
-      await updateDoc(doc(firebase().db, "questions", q._id), { answer: text.trim().slice(0, 600), answeredAt: serverTimestamp() });
+      await updateDoc(doc(backend().db, "questions", q._id), { answer: text.trim().slice(0, 600), answeredAt: serverTimestamp() });
       setEditing(false);
       toast.success("Answer published.");
     } catch {
@@ -288,8 +288,8 @@ function AnswerCard({ q, locked }: { q: WithId<Question>; locked: boolean }) {
   );
 }
 
-async function uploadToR2(f: File, kind: "avatar" | "post", niatId: string): Promise<string> {
-  const token = await firebase().auth.currentUser?.getIdToken();
+async function uploadMedia(f: File, kind: "avatar" | "post", niatId: string): Promise<string> {
+  const token = await backend().auth.currentUser?.getIdToken();
   const res = await fetch(`/api/media/upload-url?niatId=${encodeURIComponent(niatId)}`, {
     method: "POST",
     headers: { "content-type": "application/json", authorization: `Bearer ${token}` },

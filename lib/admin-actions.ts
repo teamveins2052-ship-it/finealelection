@@ -1,7 +1,7 @@
 "use client";
 
-import { doc, serverTimestamp, updateDoc } from "firebase/firestore";
-import { firebase } from "@/lib/firebase/client";
+import { doc, serverTimestamp, updateDoc } from "@/lib/db/firestore";
+import { backend } from "@/lib/backend/client";
 import { call } from "@/lib/client-data";
 import { phaseOf, type PublicSettings } from "@/lib/election";
 
@@ -16,7 +16,7 @@ export async function updateSettings(email: string, current: PublicSettings, pat
   for (const [k, v] of Object.entries(patch)) {
     payload[k] = ["campaignOpensAt", "opensAt", "closesAt", "siteClosesAt"].includes(k) ? toDate(v as number) : v;
   }
-  await updateDoc(doc(firebase().db, "settings", "election"), payload);
+  await updateDoc(doc(backend().db, "settings", "election"), payload);
   // Mirror to RTDB + audit right away (free hosting has no settings trigger).
   await call("syncElection", {}).catch(() => undefined);
 }

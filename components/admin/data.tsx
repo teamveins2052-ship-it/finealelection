@@ -1,8 +1,8 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
-import { firebase } from "@/lib/firebase/client";
+import { collection, onSnapshot, orderBy, query } from "@/lib/db/firestore";
+import { backend } from "@/lib/backend/client";
 import { conv, type WithId } from "@/lib/schema/converters";
 import type { CorrectionRequest, Nominee, Position, Student, Tally } from "@/lib/schema";
 
@@ -25,7 +25,7 @@ export function AdminDataProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<AdminData>({ students: null, positions: null, nominees: null, tallies: null, requests: null, error: null });
 
   useEffect(() => {
-    const { db } = firebase();
+    const { db } = backend();
     const fail = (e: Error) => setData((d) => ({ ...d, error: e.message }));
     const unsubs = [
       onSnapshot(collection(db, "students").withConverter(conv.student), (s) => setData((d) => ({ ...d, students: s.docs.map((x) => x.data()) })), fail),

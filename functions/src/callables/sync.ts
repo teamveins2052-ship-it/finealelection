@@ -1,4 +1,4 @@
-import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { onCall, HttpsError } from "../lib/callable";
 import { z } from "zod";
 import { callOpts } from "../lib/admin";
 import { rateLimit, requireAdmin, requireStudent } from "../auth/guards";
@@ -9,8 +9,7 @@ import { welcomeOnce } from "../triggers/mail-triggers";
 import { NomineeId, PositionId, ids } from "../schema";
 
 /*
- * Free-hosting replacements for the Firestore triggers (no Blaze plan → no triggers).
- * The browser calls these right after it writes; each one only re-derives server-owned data
+ * Replacements for database triggers. The browser calls these right after it writes; each one only re-derives server-owned data
  * from documents already in the database, so a caller can't forge anything — at worst it
  * makes the server do idempotent work early. tick.ts sweeps anything a client never reported.
  */
@@ -33,7 +32,7 @@ export const syncReactions = onCall(callOpts, async (req) => {
   return { ok: true };
 });
 
-/** Mirror settings to RTDB + audit, right after an admin saves them. */
+/** Mirror settings to the live display (rt.election) + audit, right after an admin saves them. */
 export const syncElection = onCall(callOpts, async (req) => {
   await requireAdmin(req);
   await syncSettingsFromDb();

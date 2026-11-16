@@ -1,8 +1,8 @@
 "use client";
 
-import { signOut } from "firebase/auth";
-import { collection, doc, getDoc, getDocs, limit, query, serverTimestamp, updateDoc, where } from "firebase/firestore";
-import { firebase } from "@/lib/firebase/client";
+import { signOut } from "@/lib/db/auth";
+import { collection, doc, getDoc, getDocs, limit, query, serverTimestamp, updateDoc, where } from "@/lib/db/firestore";
+import { backend } from "@/lib/backend/client";
 import { SESSION_KEY } from "@/hooks/use-session";
 
 export const NIAT_KEY = "niat.loginId";
@@ -17,7 +17,7 @@ export type LoginOutcome =
  * sheet (D-01). A Google account that isn't the registered one is signed straight back out.
  */
 export async function finishLogin(expectedNiatId?: string | null): Promise<LoginOutcome> {
-  const { auth, db } = firebase();
+  const { auth, db } = backend();
   const user = auth.currentUser;
   const email = user?.email?.toLowerCase();
   if (!user || !email) return { ok: false, reason: "mismatch", message: "Sign-in didn't complete. Try again." };

@@ -17,5 +17,8 @@
   },
   "devDependencies": {
     "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "jwks-rsa": "3.2.2"
   }
 }

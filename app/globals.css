@@ -129,6 +129,11 @@ html {
   box-shadow: none;
 }
 
+/* Intro already played on this page load: never paint the overlay again. */
+html[data-intro="skip"] .intro-overlay {
+  display: none;
+}
+
 body {
   background: var(--bg);
   color: var(--text);

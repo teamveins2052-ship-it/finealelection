@@ -1,6 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { timingSafeEqual } from "node:crypto";
-import { runTick } from "@/functions/src/http";
 
 /**
  * Scheduled housekeeping (Vercel Cron and/or a free external pinger like cron-job.org).
@@ -19,6 +18,7 @@ function authorized(req: NextRequest): boolean {
 
 export async function GET(req: NextRequest) {
   if (!authorized(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const { runTick } = await import("@/functions/src/http");
   const r = await runTick(true);
   return NextResponse.json(r, { headers: { "Cache-Control": "no-store" } });
 }

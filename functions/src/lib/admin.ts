@@ -35,7 +35,7 @@ if (!getApps().length) {
   // always sets DATABASE_URL (asia-southeast1 needs the full regional URL).
   const databaseURL = IS_EMULATOR
     ? `http://127.0.0.1:9000?ns=${PROJECT}-default-rtdb`
-    : (process.env.DATABASE_URL ?? `https://${PROJECT}-default-rtdb.firebaseio.com`);
+    : (process.env.DATABASE_URL?.trim() || `https://${PROJECT}-default-rtdb.firebaseio.com`);
   const options: AppOptions = { projectId: PROJECT, ...(databaseURL ? { databaseURL } : {}) };
   const b64 = process.env.FIREBASE_SERVICE_ACCOUNT_B64;
   if (b64 && !IS_EMULATOR) {

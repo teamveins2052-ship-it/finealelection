@@ -1,5 +1,10 @@
 import { after, NextResponse, type NextRequest } from "next/server";
-import { handleCallable, runTick } from "@/functions/src/http";
+import type * as Server from "@/functions/src/http";
+
+// Loaded on first request (not at import) so a missing/broken server setting returns a clean
+// JSON error and a clear log line instead of crashing the whole route. See /api/health.
+let server: Promise<typeof Server> | null = null;
+const loadServer = () => (server ??= import("@/functions/src/http"));
 
 /**
  * Server actions over HTTP for free hosting (no Cloud Functions / Blaze plan).
@@ -31,6 +36,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ name: stri
 
     // First hop only — the hosting proxy appends the real client IP to x-forwarded-for.
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown";
+    const { handleCallable, runTick } = await loadServer();
     const r = await handleCallable(name, data, { authorization: req.headers.get("authorization"), appCheck: req.headers.get("x-firebase-appcheck") }, ip);
 
     // Opportunistic housekeeping after the response (vote sweep, settings mirror, email queue).
@@ -44,7 +50,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ name: stri
     return NextResponse.json(r.body, { status: r.status, headers: { "Cache-Control": "no-store" } });
   } catch (err: unknown) {
     // Details go to the server log only; users get one plain sentence (AGENTS §7 Errors).
-    console.error("[api/fn:fatal]", err instanceof Error ? err.message : err);
+    server = null; // retry loading next time (e.g. after env vars are fixed and redeployed)
+    console.error("[api/fn:fatal] check /api/health —", err instanceof Error ? err.message : err);
     return NextResponse.json(
       { error: { status: "internal", message: "Something went wrong. Try again in a moment." } },
       { status: 500, headers: { "Cache-Control": "no-store" } },

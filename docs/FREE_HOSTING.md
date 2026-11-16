@@ -28,7 +28,7 @@ set `NEXT_PUBLIC_FUNCTIONS_MODE=callable` and `firebase deploy --only functions`
 
 | Name | Value |
 |---|---|
-| `NEXT_PUBLIC_FIREBASE_API_KEY` … `NEXT_PUBLIC_FIREBASE_APP_ID`, `NEXT_PUBLIC_FIREBASE_DATABASE_URL` | from `.env.local.firebase` |
+| `NEXT_PUBLIC_FIREBASE_API_KEY` … `NEXT_PUBLIC_FIREBASE_APP_ID`, `NEXT_PUBLIC_FIREBASE_DATABASE_URL` | from `.env.local.real` (same order as `.env.example`; see `docs/ENV.md`) |
 | `NEXT_PUBLIC_USE_EMULATORS` | `false` |
 | `NEXT_PUBLIC_APP_URL`, `APP_URL` | the site URL, e.g. `https://elections.semmap.in` |
 | `FIREBASE_SERVICE_ACCOUNT_B64` | base64 of the service-account key JSON (never commit the JSON) |

@@ -72,7 +72,7 @@ First functions deploy may ask to enable APIs (Cloud Build, Artifact Registry, S
 
 ## Step 11 — Point the app at the real project
 1. Back up the emulator settings: copy `.env.local` → `.env.local.emulator`.
-2. Copy `.env.staging.example` → `.env.local` and fill in the web config (step 3) and RTDB URL (step 6). Make sure `NEXT_PUBLIC_USE_EMULATORS=false` and **no** `*_EMULATOR_HOST` lines remain.
+2. Copy `.env.example` → `.env.local.real` (see `docs/ENV.md`), then run `npm run env:real`, and fill in the web config (step 3) and RTDB URL (step 6). Make sure `NEXT_PUBLIC_USE_EMULATORS=false` and **no** `*_EMULATOR_HOST` lines remain.
 3. Restart the dev server.
 
 ## Step 12 — Create the first admin (one click)

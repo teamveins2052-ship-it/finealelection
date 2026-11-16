@@ -57,7 +57,6 @@ service-account*.json
 
 # bootstrap credentials
 !.env.bootstrap.example
-!.env.staging.example
 
 # local production builds (any dist dir)
 /.next-*/

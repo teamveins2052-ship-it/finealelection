@@ -95,7 +95,7 @@ functions/src/       callables, triggers, guards, mailer, 2-step (TOTP) — shar
 scripts/seed/        emulator seed data + one-time production bootstrap
 scripts/ops/         operator scripts for the real project (need .env.bootstrap)
 tests/               unit/ + rules/ (Firestore security rules)
-docs/                specs (start with MASTER.md) · FREE_HOSTING.md for Vercel setup
+docs/                specs (start with MASTER.md) · FREE_HOSTING.md (Vercel) · ENV.md (env files)
 ```
 
 ## Operator commands (real project)

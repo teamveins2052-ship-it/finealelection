@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useTheme } from "next-themes";
 import { Lock, LogOut, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/primitives";
@@ -15,7 +14,6 @@ import { cn } from "@/lib/utils";
 export default function ProfilePage() {
   const session = useSession();
   const router = useRouter();
-  const { theme, setTheme } = useTheme();
   const twoStep = useTwoStep();
   if (session.status !== "ready" || !session.student) return null;
   const s = session.student;
@@ -50,22 +48,6 @@ export default function ProfilePage() {
 
       <TwoStepCard on={s.mfaEnabled === true} email={s.email} refresh={twoStep.refresh} />
 
-      <Card className="space-y-3 p-4">
-        <p className="text-sm font-semibold">Theme</p>
-        <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Theme">
-          {(["system", "light", "dark"] as const).map((t) => (
-            <button
-              key={t}
-              role="radio"
-              aria-checked={theme === t}
-              onClick={() => setTheme(t)}
-              className={cn("h-11 rounded-md border text-sm font-semibold capitalize", theme === t ? "border-primary bg-primary/10 text-primary" : "border-border")}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
-      </Card>
 
       <Card className="flex gap-3 p-4 text-sm text-muted">
         <ShieldCheck className="size-5 shrink-0" />

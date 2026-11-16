@@ -81,3 +81,28 @@ npm test            # unit (Vitest)
 npm run test:rules  # Firestore security rules on the emulator
 npm run build
 ```
+
+## Project layout
+
+```
+app/                 pages (student, nominee studio, admin) + API routes
+  api/fn/[name]      server actions on free hosting (runs functions/src callables)
+  api/cron/tick      scheduled housekeeping (vote sweep, settings mirror, email queue)
+  fonts/             self-hosted open-licence fonts (Luckiest Guy, Nunito)
+components/          ui/ (primitives) · auth/ · student/ · admin/ · public/ · shared/ · vote/
+hooks/ lib/          client hooks · schema (Zod, single source of truth), Firebase clients, helpers
+functions/src/       callables, triggers, guards, mailer, 2-step (TOTP) — shared by Cloud Functions and /api/fn
+scripts/seed/        emulator seed data + one-time production bootstrap
+scripts/ops/         operator scripts for the real project (need .env.bootstrap)
+tests/               unit/ + rules/ (Firestore security rules)
+docs/                specs (start with MASTER.md) · FREE_HOSTING.md for Vercel setup
+```
+
+## Operator commands (real project)
+
+| Command | What it does |
+|---|---|
+| `npm run bootstrap` | One-time: first admin, settings, placeholder positions |
+| `npm run ops:import -- <file.xlsx> [--write]` | Import the official student workbook (dry run without `--write`) |
+| `npm run ops:window` | Open voting now, close 20 Nov 8:00 PM IST |
+| `npm run ops:sync` | Mirror settings to the live display, count unreported votes, send queued emails |

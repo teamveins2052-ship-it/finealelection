@@ -2,8 +2,8 @@
  * Import the official student workbook (all hall tabs) into the REAL project — same validation,
  * dedupe and audit as Admin → Import (importRows in functions/src/callables/admin.ts).
  *
- *   tsx --env-file=.env.bootstrap scripts/seed/import-sheet.ts <file.xlsx>           # dry run: checks only
- *   tsx --env-file=.env.bootstrap scripts/seed/import-sheet.ts <file.xlsx> --write   # writes
+ *   tsx --env-file=.env.bootstrap scripts/ops/import-sheet.ts <file.xlsx>           # dry run: checks only
+ *   tsx --env-file=.env.bootstrap scripts/ops/import-sheet.ts <file.xlsx> --write   # writes
  *
  * Only NIAT ID, name, email, mobile, hall-ticket no. and batch are read. Every other column
  * (S.No, Branch, Father Name, Father Mobile…) is dropped before anything else happens and is

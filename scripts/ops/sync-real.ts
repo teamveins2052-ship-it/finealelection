@@ -1,7 +1,7 @@
 /**
  * One-off for the real project on free hosting: mirror settings → RTDB /election and run the
  * housekeeping tick (same code the website runs). Credentials: FIREBASE_SERVICE_ACCOUNT_B64.
- *   tsx --env-file=.env.bootstrap scripts/seed/sync-real.ts
+ *   tsx --env-file=.env.bootstrap scripts/ops/sync-real.ts
  */
 import { readFileSync } from "node:fs";
 const keyPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;

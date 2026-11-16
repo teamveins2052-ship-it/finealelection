@@ -1,7 +1,7 @@
 /**
  * Operator script (16 Nov): open voting NOW and close it 20 Nov 8:00 PM IST on the real project,
  * then mirror to RTDB + audit (same code the site runs). Times are set on the server clock.
- *   tsx --env-file=.env.bootstrap scripts/seed/set-window.ts
+ *   tsx --env-file=.env.bootstrap scripts/ops/set-window.ts
  */
 import { readFileSync } from "node:fs";
 process.env.FIREBASE_SERVICE_ACCOUNT_B64 = Buffer.from(readFileSync(process.env.GOOGLE_APPLICATION_CREDENTIALS!)).toString("base64");

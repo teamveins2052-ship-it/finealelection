@@ -11,7 +11,6 @@ import {
   BarChart3, Bell, ClipboardList, Download, Eye, FileSpreadsheet, Flag, Gauge, Inbox, LogOut, Megaphone, Menu, Settings, ShieldAlert, Trophy, Users, Vote, X,
 } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
-import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { GoogleG } from "@/components/public/login-flow";
 import { Button } from "@/components/ui/button";
 import { Card, FieldError, Input, Skeleton } from "@/components/ui/primitives";
@@ -150,7 +149,6 @@ function Frame({ children, canViewVoters, email }: { children: React.ReactNode; 
         <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-bg/90 px-4 backdrop-blur">
           <button aria-label="Open menu" onClick={() => setOpen(true)} className="grid size-11 place-items-center rounded-md lg:hidden"><Menu className="size-5" /></button>
           <span className="flex-1 text-sm font-semibold text-muted">Election admin</span>
-          <ThemeToggle />
           <Button variant="ghost" size="sm" onClick={() => logout().then(() => router.replace("/"))}>
             <LogOut className="size-4" /> <span className="hidden sm:inline">Sign out</span>
           </Button>

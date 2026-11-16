@@ -29,21 +29,15 @@
     }
   },
   "include": [
+    "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next-build/types/**/*.ts",
-    ".next-build2/types/**/*.ts",
-    ".next-build3/types/**/*.ts",
-    ".next-build4/types/**/*.ts",
-    ".next-build5/types/**/*.ts",
-    ".next-build6/types/**/*.ts",
-    ".next/types/**/*.ts",
-    "next-env.d.ts",
-    ".next-real/types/**/*.ts"
+    ".next/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
     "functions",
-    ".next-build"
+    ".next",
+    ".next-*"
   ]
 }

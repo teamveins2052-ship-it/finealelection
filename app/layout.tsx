@@ -5,13 +5,13 @@ import "./globals.css";
 
 // Use bundled local fonts — zero network requests, 100% reliable on Vercel builds.
 const display = localFont({
-  src: "../public/assets/fonts/luckiest-guy-latin.woff2",
+  src: "./fonts/luckiest-guy-latin.woff2",
   variable: "--font-display-face",
   display: "swap",
 });
 
 const nunito = localFont({
-  src: "../public/assets/fonts/nunito-latin.woff2",
+  src: "./fonts/nunito-latin.woff2",
   variable: "--font-nunito",
   display: "swap",
 });

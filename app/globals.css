@@ -129,19 +129,6 @@ html {
   box-shadow: none;
 }
 
-/* Text over the crowd scene: a soft paper-coloured halo keeps it readable. */
-.paper-halo {
-  text-shadow:
-    0 0 6px var(--bg),
-    0 0 12px var(--bg),
-    0 0 18px var(--bg);
-}
-
-/* Intro already played on this page load: never paint the overlay again. */
-html[data-intro="skip"] .intro-overlay {
-  display: none;
-}
-
 body {
   background: var(--bg);
   color: var(--text);

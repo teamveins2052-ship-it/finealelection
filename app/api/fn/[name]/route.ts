@@ -43,8 +43,11 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ name: stri
 
     return NextResponse.json(r.body, { status: r.status, headers: { "Cache-Control": "no-store" } });
   } catch (err: unknown) {
-    console.error("[api/fn:fatal]", err);
-    const message = err instanceof Error ? err.message : "Service temporarily unavailable.";
-    return NextResponse.json({ error: { status: "internal", message } }, { status: 500, headers: { "Cache-Control": "no-store" } });
+    // Details go to the server log only; users get one plain sentence (AGENTS §7 Errors).
+    console.error("[api/fn:fatal]", err instanceof Error ? err.message : err);
+    return NextResponse.json(
+      { error: { status: "internal", message: "Something went wrong. Try again in a moment." } },
+      { status: 500, headers: { "Cache-Control": "no-store" } },
+    );
   }
 }

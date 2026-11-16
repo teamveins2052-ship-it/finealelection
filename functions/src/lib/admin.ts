@@ -57,6 +57,15 @@ if (!getApps().length) {
 
 export const db = getFirestore();
 export const rtdb = getDatabase();
-export const adminAuth = getAuth();
+
+let _adminAuth: ReturnType<typeof getAuth> | null = null;
+export const getAdminAuth = () => (_adminAuth ??= getAuth());
+export const adminAuth = new Proxy({} as ReturnType<typeof getAuth>, {
+  get(_target, prop: string | symbol) {
+    const auth = getAdminAuth();
+    const val = Reflect.get(auth, prop);
+    return typeof val === "function" ? val.bind(auth) : val;
+  },
+});
 
 export const callOpts = { region: REGION, enforceAppCheck: ENFORCE_APP_CHECK, cors: true } as const;

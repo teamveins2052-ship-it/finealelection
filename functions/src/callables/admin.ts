@@ -2,7 +2,7 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { FieldValue, type Timestamp } from "firebase-admin/firestore";
 import { db, rtdb, callOpts } from "../lib/admin";
 import { audit, requireAdmin, requireVoterAdmin } from "../auth/guards";
-import { directoryEntry, electionTimes, emailUniqueOrThrow, refreshEligible } from "../lib/helpers";
+import { directoryEntry, emailUniqueOrThrow, refreshEligible } from "../lib/helpers";
 import { announcementEmail, correctionEmail, queueEmail, reminderEmail } from "../lib/mailer";
 import { mailAccounts } from "../lib/mail-accounts";
 import {

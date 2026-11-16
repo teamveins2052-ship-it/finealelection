@@ -55,7 +55,7 @@ export async function GET() {
 
   const healthy = !missing.length && !problems.length && database === "ok";
   return NextResponse.json(
-    { healthy, missing, problems, database, settings },
+    { healthy, missing, problems, database, node: process.version, settings },
     { status: healthy ? 200 : 503, headers: { "Cache-Control": "no-store" } },
   );
 }

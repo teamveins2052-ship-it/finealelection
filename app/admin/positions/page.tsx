@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { doc, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
 import { toast } from "sonner";
-import { ArrowDown, ArrowUp, Lock, Plus, Search, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Plus, Search, X } from "lucide-react";
 import { PageTitle } from "@/components/admin/shell";
 import { useAdminData } from "@/components/admin/data";
 import { CLUB_COLORS, CLUB_ICON_NAMES, ClubIcon } from "@/components/shared/club-icon";
@@ -11,7 +11,6 @@ import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, Chip, Input, Label, Skeleton, Textarea } from "@/components/ui/primitives";
 import { Sheet } from "@/components/ui/sheet";
-import { useElection } from "@/hooks/use-election";
 import { call, errorMessage, invalidate } from "@/lib/client-data";
 import { firebase } from "@/lib/firebase/client";
 import { PositionId, type Position } from "@/lib/schema";
@@ -19,8 +18,7 @@ import type { WithId } from "@/lib/schema/converters";
 
 /** D4 / N1: positions (admin write, P-POS-02) + nominee toggles via setNominee (locked once voting opens). */
 export default function PositionsPage() {
-  const { positions, nominees, students } = useAdminData();
-  const election = useElection();
+  const { positions, nominees } = useAdminData();
   const [editing, setEditing] = useState<WithId<Position> | "new" | null>(null);
   const [adding, setAdding] = useState<WithId<Position> | null>(null);
   if (!positions || !nominees) return <Skeleton className="h-96" />;

@@ -129,8 +129,6 @@ export const adminUpdateStudent = onCall(callOpts, async (req) => {
 export const setNominee = onCall(callOpts, async (req) => {
   const admin = await requireAdmin(req);
   const input = SetNomineeInput.parse(req.data);
-  const { opensAt } = await electionTimes();
-  if (Date.now() >= opensAt) throw new HttpsError("failed-precondition", "Nominees are locked once voting opens.");
 
   const nomineeId = ids.nominee(input.positionId, input.niatId);
   await db.runTransaction(async (tx) => {

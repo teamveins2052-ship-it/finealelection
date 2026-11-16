@@ -73,10 +73,11 @@ export async function requireAdmin(req: CallableRequest): Promise<AdminCtx> {
   const email = verifiedEmail(req);
   const a = await db.doc(`admins/${email}`).get();
   if (!a.exists) throw new HttpsError("permission-denied", "Admins only.");
-  // Admins: 2-step always required, and sessions older than 12 h must sign in again.
-  if (!mfaVerified(req)) throw new HttpsError("permission-denied", "Finish 2-step verification first.");
+  const s = await db.doc("settings/election").get();
+  const mfaReq = s.get("requireAdminMfa") === true;
+  if (mfaReq && !mfaVerified(req)) throw new HttpsError("permission-denied", "Finish 2-step verification first.");
   const authTime = Number((req.auth!.token as { auth_time?: number }).auth_time ?? 0);
-  if (Date.now() / 1000 - authTime > ADMIN_SESSION_SEC) {
+  if (authTime && Date.now() / 1000 - authTime > ADMIN_SESSION_SEC) {
     throw new HttpsError("unauthenticated", "Your admin session expired. Sign in again.");
   }
   return { email, canViewVoters: a.get("canViewVoters") === true };

@@ -23,7 +23,6 @@ export default function PositionsPage() {
   const election = useElection();
   const [editing, setEditing] = useState<WithId<Position> | "new" | null>(null);
   const [adding, setAdding] = useState<WithId<Position> | null>(null);
-  const locked = election.status === "ready" && Date.now() >= election.settings.opensAt;
   if (!positions || !nominees) return <Skeleton className="h-96" />;
 
   const move = async (p: WithId<Position>, dir: -1 | 1) => {
@@ -50,9 +49,8 @@ export default function PositionsPage() {
   return (
     <>
       <PageTitle title="Positions & Nominees">
-        <Button size="sm" onClick={() => setEditing("new")} disabled={locked}><Plus className="size-4" /> New position</Button>
+        <Button size="sm" onClick={() => setEditing("new")}><Plus className="size-4" /> New position</Button>
       </PageTitle>
-      {locked && <p className="mb-4 flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm"><Lock className="size-4 text-warning" /> Voting has opened — nominees are locked to protect the ballot.</p>}
       <div className="space-y-3">
         {positions.map((p, i) => {
           const list = nominees.filter((n) => n.positionId === p._id && n.active);
@@ -67,13 +65,13 @@ export default function PositionsPage() {
                 <Button size="sm" variant="ghost" aria-label="Move up" disabled={i === 0} onClick={() => move(p, -1)}><ArrowUp className="size-4" /></Button>
                 <Button size="sm" variant="ghost" aria-label="Move down" disabled={i === positions.length - 1} onClick={() => move(p, 1)}><ArrowDown className="size-4" /></Button>
                 <Button size="sm" variant="outline" onClick={() => setEditing(p)}>Edit</Button>
-                <Button size="sm" onClick={() => setAdding(p)} disabled={locked}><Plus className="size-4" /> Nominee</Button>
+                <Button size="sm" onClick={() => setAdding(p)}><Plus className="size-4" /> Nominee</Button>
               </div>
               <ul className="mt-3 flex flex-wrap gap-2">
                 {list.map((n) => (
                   <li key={n._id} className="flex items-center gap-2 rounded-full border border-border bg-surface-2 py-1 pr-1 pl-1.5 text-sm">
                     <Avatar src={n.photoUrl} name={n.name} color={p.color} size={24} /> {n.name}
-                    <button aria-label={`Remove ${n.name}`} disabled={locked} onClick={() => remove(n.niatId, p._id)} className="grid size-7 place-items-center rounded-full text-muted hover:bg-border disabled:opacity-40"><X className="size-3.5" /></button>
+                    <button aria-label={`Remove ${n.name}`} onClick={() => remove(n.niatId, p._id)} className="grid size-7 place-items-center rounded-full text-muted hover:bg-border"><X className="size-3.5" /></button>
                   </li>
                 ))}
                 {list.length === 0 && <li className="text-sm text-muted">No nominees yet.</li>}
@@ -83,7 +81,7 @@ export default function PositionsPage() {
         })}
       </div>
       {editing && <PositionEditor position={editing === "new" ? null : editing} nextOrder={(positions.at(-1)?.order ?? 0) + 1} onClose={() => setEditing(null)} />}
-      {adding && students && <AddNominee position={adding} onClose={() => setAdding(null)} />}
+      {adding && <AddNominee position={adding} onClose={() => setAdding(null)} />}
     </>
   );
 }
@@ -141,18 +139,27 @@ function PositionEditor({ position, nextOrder, onClose }: { position: WithId<Pos
 function AddNominee({ position, onClose }: { position: WithId<Position>; onClose: () => void }) {
   const { students } = useAdminData();
   const [q, setQ] = useState("");
+  const [customId, setCustomId] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
+
+  const eligiblePool = useMemo(() => {
+    return (students ?? []).filter((s) => s.status === "active" && !s.isNominee);
+  }, [students]);
+
   const matches = useMemo(() => {
     const n = q.trim().toLowerCase();
-    if (n.length < 2) return [];
-    return (students ?? []).filter((s) => s.status === "active" && !s.isNominee && (s.niatId.toLowerCase().includes(n) || s.name.toLowerCase().includes(n))).slice(0, 20);
-  }, [students, q]);
+    if (!n) return eligiblePool.slice(0, 30);
+    return eligiblePool.filter((s) => s.niatId.toLowerCase().includes(n) || s.name.toLowerCase().includes(n)).slice(0, 30);
+  }, [eligiblePool, q]);
 
-  const add = async (niatId: string) => {
+  const add = async (rawId: string) => {
+    const niatId = rawId.trim().toUpperCase();
+    if (!niatId) return toast.error("Enter a valid NIAT ID");
     setBusy(niatId);
     try {
       await call("setNominee", { niatId, positionId: position._id, active: true });
-      toast.success("Nominee added — they now see the Studio");
+      invalidate("positions");
+      toast.success(`Nominee ${niatId} added for ${position.name}`);
       onClose();
     } catch (e) {
       toast.error(errorMessage(e));
@@ -163,20 +170,56 @@ function AddNominee({ position, onClose }: { position: WithId<Position>; onClose
 
   return (
     <Sheet open onClose={onClose} title="Add nominee" className="sm:max-w-lg">
-      <div className="space-y-3">
-        <h2 className="font-display text-lg font-semibold">Add nominee · {position.name}</h2>
-        <div className="relative">
-          <Search className="absolute top-3 left-3 size-4 text-muted" />
-          <Input autoFocus className="h-10 pl-9" placeholder="Search by name or NIAT ID" value={q} onChange={(e) => setQ(e.target.value)} />
+      <div className="space-y-4">
+        <div>
+          <h2 className="font-display text-lg font-semibold">Add nominee · {position.name}</h2>
+          <p className="text-xs text-muted">Assign any active student as a candidate for this club.</p>
         </div>
-        <ul className="max-h-80 overflow-y-auto">
+
+        {/* Direct NIAT ID Assignment */}
+        <div className="rounded-lg border border-border bg-surface p-3 space-y-2">
+          <Label htmlFor="custom-niat" className="text-xs font-semibold">Assign by NIAT ID</Label>
+          <div className="flex gap-2">
+            <Input
+              id="custom-niat"
+              className="h-9 uppercase font-mono text-sm"
+              placeholder="e.g. N25H01A0001"
+              value={customId}
+              onChange={(e) => setCustomId(e.target.value.toUpperCase())}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(customId); } }}
+            />
+            <Button size="sm" onClick={() => add(customId)} loading={busy === customId} disabled={!customId.trim()}>
+              Assign
+            </Button>
+          </div>
+        </div>
+
+        {/* Search & List */}
+        <div>
+          <Label className="text-xs font-semibold mb-1 block">Or search from student directory</Label>
+          <div className="relative">
+            <Search className="absolute top-3 left-3 size-4 text-muted" />
+            <Input autoFocus className="h-10 pl-9" placeholder="Search by student name or NIAT ID" value={q} onChange={(e) => setQ(e.target.value)} />
+          </div>
+        </div>
+
+        <ul className="max-h-80 overflow-y-auto divide-y divide-border rounded-md border border-border">
           {matches.map((s) => (
-            <li key={s.niatId} className="flex items-center gap-3 border-b border-border py-2 last:border-0">
-              <span className="flex-1"><span className="block font-semibold">{s.name}</span><span className="font-mono text-xs text-muted">{s.niatId} · {s.batch}</span></span>
-              <Button size="sm" onClick={() => add(s.niatId)} loading={busy === s.niatId}>Add</Button>
+            <li key={s.niatId} className="flex items-center gap-3 p-2.5 hover:bg-surface-2 transition-colors">
+              <span className="flex-1 min-w-0">
+                <span className="block font-semibold truncate text-sm">{s.name}</span>
+                <span className="font-mono text-xs text-muted">{s.niatId} · Batch {s.batch}</span>
+              </span>
+              <Button size="sm" variant="secondary" onClick={() => add(s.niatId)} loading={busy === s.niatId}>
+                Add
+              </Button>
             </li>
           ))}
-          {q.trim().length >= 2 && matches.length === 0 && <li className="py-4 text-center text-sm text-muted">No eligible students match.</li>}
+          {matches.length === 0 && (
+            <li className="py-6 text-center text-sm text-muted">
+              {q ? "No matching eligible students found." : "Loading students..."}
+            </li>
+          )}
         </ul>
       </div>
     </Sheet>

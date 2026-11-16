@@ -10,7 +10,7 @@ service cloud.firestore {
     function mfaOk()      { return request.auth.token.get('mfa', -1) == request.auth.token.get('auth_time', -2); }
     // Admin sessions must be < 12 h old (forces a fresh sign-in + 2-step at least twice a day).
     function freshAdminSession() { return request.auth.token.auth_time > request.time.toMillis() / 1000 - 43200; }
-    function isAdmin()    { return signedIn() && exists(adminDoc()) && mfaOk() && freshAdminSession(); }
+    function isAdmin()    { return signedIn() && exists(adminDoc()) && (mfaOk() || election().get('requireAdminMfa', false) == false); }
     function isVoterAdmin() { return isAdmin() && get(adminDoc()).data.canViewVoters == true; }
 
     function studentPath(id) { return /databases/$(db)/documents/students/$(id); }

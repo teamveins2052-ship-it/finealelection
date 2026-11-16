@@ -24,7 +24,8 @@
     "prebuild": "cd functions && node copy-schema.mjs",
     "ops:import": "tsx --env-file=.env.bootstrap scripts/ops/import-sheet.ts",
     "ops:window": "tsx --env-file=.env.bootstrap scripts/ops/set-window.ts",
-    "ops:sync": "tsx --env-file=.env.bootstrap scripts/ops/sync-real.ts"
+    "ops:sync": "tsx --env-file=.env.bootstrap scripts/ops/sync-real.ts",
+    "ops:verify": "tsx --env-file=.env.bootstrap scripts/ops/verify.ts"
   },
   "dependencies": {
     "@upstash/ratelimit": "^2.2.1",

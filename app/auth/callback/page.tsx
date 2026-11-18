@@ -38,7 +38,12 @@ export default function AuthCallbackPage() {
       const isAdmin = sessionStorage.getItem("niat.adminLogin") === "1";
       sessionStorage.removeItem("niat.adminLogin");
       const r = await finishLogin(isAdmin ? null : sessionStorage.getItem(NIAT_KEY));
-      if (r.ok) router.replace(isAdmin ? "/admin" : r.to);
+      if (r.ok) {
+        try {
+          localStorage.setItem("niat_intro_seen", "1");
+        } catch {}
+        router.replace(isAdmin ? "/admin" : (r.to || "/dashboard"));
+      }
       else setError(r.message);
     };
     const { data } = supabase().auth.onAuthStateChange((_e, session) => {

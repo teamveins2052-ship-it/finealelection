@@ -54,6 +54,9 @@ export async function finishLogin(expectedNiatId?: string | null): Promise<Login
     // A7 single-device session: newest login wins; older devices see the change and sign out.
     const sid = crypto.randomUUID();
     localStorage.setItem(SESSION_KEY, sid);
+    try {
+      localStorage.setItem("niat_intro_seen", "1");
+    } catch {}
     await updateDoc(doc(db, "students", student.id), { activeSessionId: sid, lastLoginAt: serverTimestamp() }).catch(() => undefined);
   }
   sessionStorage.removeItem(NIAT_KEY);

@@ -3,6 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <script>
+      try {
+        if (localStorage.getItem('niat_intro_seen') === '1' || sessionStorage.getItem('niat_intro_seen') === '1') {
+          document.documentElement.classList.add('intro-skipped');
+        }
+      } catch (e) {}
+    </script>
 
     <!--
       What the search results and the share previews say.
@@ -2451,7 +2458,9 @@
         opacity: 1;
         pointer-events: auto;
       }
-      #loader.is-done {
+      #loader.is-done,
+      html.intro-skipped #loader {
+        display: none !important;
         opacity: 0 !important;
         pointer-events: none !important;
         visibility: hidden !important;
@@ -3833,63 +3842,91 @@ yellow means they have noticed &mdash; drop it on them<br />
     <!-- Dedicated Hero Section Controller & Intro Video Loader -->
     <script>
       (function() {
-        // Video Intro Loader logic
+        // Video Intro Loader logic — only plays once per device/browser session
         const loader = document.getElementById('loader');
         const introVideo = document.getElementById('intro-video');
 
         let introFinished = false;
+        let alreadySeen = false;
+        try {
+          alreadySeen = localStorage.getItem('niat_intro_seen') === '1' || sessionStorage.getItem('niat_intro_seen') === '1';
+        } catch (e) {}
 
         function finishIntro() {
           if (introFinished) return;
           introFinished = true;
+          try {
+            localStorage.setItem('niat_intro_seen', '1');
+            sessionStorage.setItem('niat_intro_seen', '1');
+          } catch (e) {}
           if (loader) {
             loader.classList.add('is-done');
+            loader.style.opacity = '0';
+            loader.style.pointerEvents = 'none';
+            setTimeout(function() {
+              if (loader) loader.style.display = 'none';
+            }, 500);
           }
           document.body.style.overflow = '';
         }
 
-        // Prevent premature removal of loader until intro video finishes
-        if (loader) {
-          document.body.style.overflow = 'hidden';
-          const originalClassListAdd = loader.classList.add.bind(loader.classList);
-          loader.classList.add = function(...args) {
-            if (args.includes('is-done') && !introFinished) {
-              return;
-            }
-            return originalClassListAdd(...args);
-          };
-        }
-
-        if (introVideo) {
-          introVideo.muted = true;
-          introVideo.defaultMuted = true;
-          introVideo.setAttribute('muted', '');
-          introVideo.playsInline = true;
-
-          const p = introVideo.play();
-          if (p) {
-            p.catch(function(err) {
-              console.warn('Autoplay prevented:', err);
-            });
+        if (alreadySeen) {
+          introFinished = true;
+          if (loader) {
+            loader.classList.add('is-done');
+            loader.style.display = 'none';
+          }
+          if (introVideo) {
+            try { introVideo.pause(); } catch(e) {}
+          }
+          document.body.style.overflow = '';
+        } else {
+          if (loader) {
+            document.body.style.overflow = 'hidden';
+            loader.addEventListener('click', finishIntro);
+            const originalClassListAdd = loader.classList.add.bind(loader.classList);
+            loader.classList.add = function(...args) {
+              if (args.includes('is-done') && !introFinished) {
+                return;
+              }
+              return originalClassListAdd(...args);
+            };
           }
 
-          introVideo.addEventListener('ended', finishIntro);
-          introVideo.addEventListener('timeupdate', function() {
-            if (introVideo.duration && introVideo.currentTime >= introVideo.duration - 0.15) {
-              finishIntro();
+          if (introVideo) {
+            introVideo.muted = true;
+            introVideo.defaultMuted = true;
+            introVideo.setAttribute('muted', '');
+            introVideo.playsInline = true;
+
+            const p = introVideo.play();
+            if (p) {
+              p.catch(function(err) {
+                console.warn('Autoplay prevented:', err);
+                finishIntro();
+              });
             }
-          });
-          introVideo.addEventListener('error', finishIntro);
+
+            introVideo.addEventListener('ended', finishIntro);
+            introVideo.addEventListener('timeupdate', function() {
+              if (introVideo.duration && introVideo.currentTime >= introVideo.duration - 0.15) {
+                finishIntro();
+              }
+            });
+            introVideo.addEventListener('error', finishIntro);
+          }
+
+          // Safety timeout
+          setTimeout(finishIntro, 12000);
         }
 
-        // Safety timeout
-        setTimeout(finishIntro, 25000);
-
-        // Replay Intro function
+        // Replay Intro function (can be invoked programmatically or by test)
         window.replayIntro = function() {
           introFinished = false;
+          document.documentElement.classList.remove('intro-skipped');
           if (loader) {
             loader.classList.remove('is-done');
+            loader.style.display = 'flex';
             loader.style.opacity = '1';
             loader.style.visibility = 'visible';
             loader.style.pointerEvents = 'auto';

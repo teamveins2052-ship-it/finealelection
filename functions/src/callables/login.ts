@@ -56,7 +56,14 @@ export const sendLoginLink = onCall(callOpts, async (req) => {
   if (input.data.redirectTo) {
     try {
       const u = new URL(input.data.redirectTo);
-      if (u.pathname === "/auth/callback") redirectTarget = input.data.redirectTo;
+      if (u.pathname === "/auth/callback") {
+        if (u.hostname.includes("electionclone.vercel.app") || (u.hostname.endsWith(".vercel.app") && !u.hostname.includes("localhost"))) {
+          u.protocol = "https:";
+          u.hostname = "semmap.in";
+          u.port = "";
+        }
+        redirectTarget = u.toString();
+      }
     } catch {
       // ignore invalid URL and keep default
     }

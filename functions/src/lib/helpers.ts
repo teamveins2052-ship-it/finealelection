@@ -114,4 +114,17 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
   return "full";
 }
 
-export const APP_URL = process.env.APP_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "https://semmap.in";
+function resolveAppUrl(): string {
+  const envUrl = (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "").trim();
+  // Allow localhost for local development
+  if (envUrl.includes("localhost") || envUrl.includes("127.0.0.1")) {
+    return envUrl.replace(/\/$/, "");
+  }
+  // If it's electionclone.vercel.app or any other vercel preview domain, force to the official domain semmap.in
+  if (!envUrl || envUrl.includes("electionclone.vercel.app") || envUrl.includes("vercel.app")) {
+    return "https://semmap.in";
+  }
+  return envUrl.replace(/\/$/, "");
+}
+
+export const APP_URL = resolveAppUrl();

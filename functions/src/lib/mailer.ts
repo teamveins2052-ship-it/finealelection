@@ -81,33 +81,43 @@ const button = (href: string, label: string) =>
 
 export function welcomeEmail(firstName: string): { subject: string; html: string } {
   return {
-    subject: "Welcome to NIAT Elections '26",
-    html: layout(`Welcome, ${firstName}!`, `
-<p style="font-size:16px;line-height:1.5">You're signed in and ready. Here's how it works:</p>
-<ol style="font-size:15px;line-height:1.6;padding-left:20px">
-<li>Browse every nominee's profile and promises.</li>
-<li>Vote once in each club — your choice is final and private.</li>
-<li>Keep your receipt codes in <b>My Votes</b>.</li>
+    subject: "🎉 Login Successful — Welcome to NIAT Elections '26",
+    html: layout(`Login Successful!`, `
+<p style="font-size:16px;line-height:1.5">Hi <b>${esc(firstName)}</b>,</p>
+<p style="font-size:16px;line-height:1.5">You have successfully logged in to <b>NIAT Campus Elections 2026</b>.</p>
+<div style="background:#FFF;border:1px solid #E5E7EB;border-radius:12px;padding:16px 20px;margin:18px 0">
+  <div style="font-size:14px;color:#111827;font-weight:700;margin-bottom:6px">✓ Your Ballot is Ready</div>
+  <div style="font-size:13px;color:#4B5563;line-height:1.5">You can now vote for all 7 club leadership positions. Every vote is 100% private, anonymous, and backed by a receipt code.</div>
+</div>
+<ol style="font-size:15px;line-height:1.6;padding-left:20px;margin:16px 0">
+  <li>Browse every nominee's profile, bio, and election promises.</li>
+  <li>Cast your vote across all 7 participating clubs.</li>
+  <li>Save and view your receipts in <b>My Votes</b>.</li>
 </ol>
-${button(`${APP_URL}/dashboard`, "Open your ballot")}`),
+${button(`${APP_URL}/dashboard`, "Go to Ballot & Vote")}`),
   };
 }
 
-/** "I voted" sticker — names the clubs count and the student, NEVER a nominee (D-16). */
+/** "I voted" sticker & confirmation — sent once the student has cast votes in all active clubs. */
 export function stickerEmail(firstName: string, clubs: number): { subject: string; html: string } {
-  const sticker = `<table role="presentation" align="center" style="margin:8px auto 4px"><tr><td align="center"
+  const sticker = `<table role="presentation" align="center" style="margin:12px auto 8px"><tr><td align="center"
 style="background:#111;color:#FBFAF7;border-radius:24px;padding:26px 34px;box-shadow:6px 7px 0 #F1DC9A">
 <div style="font-size:44px;line-height:1">✓</div>
-<div style="font-weight:900;font-size:34px;letter-spacing:.02em;margin-top:6px">I VOTED</div>
+<div style="font-weight:900;font-size:32px;letter-spacing:.02em;margin-top:6px">I VOTED</div>
 <div style="font-size:14px;margin-top:6px">in all ${clubs} clubs · NIAT Elections '26</div>
 <div style="font-size:13px;margin-top:10px;opacity:.8">— ${esc(firstName)}</div>
 </td></tr></table>`;
   return {
-    subject: "Your 'I voted' sticker 🎉",
-    html: layout("You did it!", `
-<p style="font-size:16px;line-height:1.5">Thanks for voting in every club, ${esc(firstName)}. Here's your sticker — screenshot it and share it anywhere.</p>
+    subject: `🎉 Congratulations! You have voted in all ${clubs} clubs — NIAT Elections '26`,
+    html: layout("All Votes Cast!", `
+<p style="font-size:16px;line-height:1.5">Congratulations, <b>${esc(firstName)}</b>!</p>
+<p style="font-size:16px;line-height:1.5">You have successfully cast your vote across all <b>${clubs} clubs</b> in the NIAT Campus Elections 2026.</p>
 ${sticker}
-${button(`${APP_URL}/my-votes`, "See your receipts")}`),
+<div style="background:#FFF;border:1px solid #E5E7EB;border-radius:12px;padding:16px 20px;margin:20px 0">
+  <div style="font-size:14px;color:#111827;font-weight:700;margin-bottom:4px">✓ All ${clubs} Votes Confirmed & Counted</div>
+  <div style="font-size:13px;color:#4B5563;line-height:1.5">Your choices are private and anonymously tallied. You can view all your cryptographic receipt codes and timestamped proof anytime in <b>My Votes</b>.</div>
+</div>
+${button(`${APP_URL}/my-votes`, "View My Vote Receipts")}`),
   };
 }
 

@@ -51,12 +51,21 @@ export async function countVote(voteId: string): Promise<boolean> {
 
   await audit(result.voterId, "student", "vote_cast", `votes/${voteId}`, { positionId: result.positionId });
 
-  // Receipts stay in-app (My Votes) — per-vote emails would use up the daily Brevo limit.
   // "I voted" sticker email once the student has voted in EVERY active club (never names a nominee).
-  const activeClubs = (await db.collection("positions").where("active", "==", true).count().get()).data().count;
-  if (result.email && activeClubs > 0 && result.votedCount >= activeClubs) {
-    const { subject, html } = stickerEmail(result.name.split(" ")[0], activeClubs);
-    await queueEmail("sticker", result.email, subject, html, `sticker_${result.voterId}`);
+  try {
+    let activeClubs = 7;
+    try {
+      const snap = await db.collection("positions").where("active", "==", true).get();
+      activeClubs = snap.size || 7;
+    } catch {
+      activeClubs = 7;
+    }
+    if (result.email && activeClubs > 0 && result.votedCount >= activeClubs) {
+      const { subject, html } = stickerEmail(result.name.split(" ")[0], activeClubs);
+      await queueEmail("sticker", result.email, subject, html, `sticker_${result.voterId}`);
+    }
+  } catch (mailErr) {
+    console.error("[vote] sticker email failed", mailErr);
   }
   return true;
 }

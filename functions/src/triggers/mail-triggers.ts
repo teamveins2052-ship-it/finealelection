@@ -1,13 +1,14 @@
 import { db } from "../lib/admin";
 import { deliver, queueEmail, welcomeEmail } from "../lib/mailer";
 
-/** Queues the welcome email; the dedupe id makes repeat calls send nothing (free-hosting path). */
+/** Queues the login welcome email; dedupe per 10-minute session window so rapid page reloads don't spam. */
 export async function welcomeOnce(niatId: string): Promise<void> {
   const s = await db.doc(`students/${niatId}`).get();
   if (!s.exists || s.get("status") !== "active" || !s.get("email")) return;
   const firstName = String(s.get("name") ?? "").split(" ")[0] || "there";
   const { subject, html } = welcomeEmail(firstName);
-  await queueEmail("welcome", String(s.get("email")), subject, html, `welcome_${niatId}`);
+  const bucket = Math.floor(Date.now() / (10 * 60 * 1000));
+  await queueEmail("welcome", String(s.get("email")), subject, html, `welcome_${niatId}_${bucket}`);
 }
 
 /** Sends emails that waited for Brevo's daily limit; stops as soon as the accounts are full again. */

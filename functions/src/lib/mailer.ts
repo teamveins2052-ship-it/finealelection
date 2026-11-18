@@ -28,7 +28,7 @@ const queue = () => db.collection("_mailQueue");
  * Queue (and try to send) one email. `dedupeId` makes it idempotent: e.g. `welcome_<niatId>`
  * can never be sent twice even if a trigger fires twice (triggers are at-least-once).
  */
-export async function queueEmail(kind: MailKind, to: string, subject: string, html: string, dedupeId?: string): Promise<"sent" | "queued" | "failed" | "duplicate"> {
+export async function queueEmail(kind: MailKind, to: string, subject: string, html: string, dedupeId?: string, deliverNow = true): Promise<"sent" | "queued" | "failed" | "duplicate"> {
   const ref = dedupeId ? queue().doc(dedupeId) : queue().doc();
   try {
     await ref.create({ kind, to, subject, html, status: "queued", attempts: 0, createdAt: FieldValue.serverTimestamp() });
@@ -36,6 +36,7 @@ export async function queueEmail(kind: MailKind, to: string, subject: string, ht
     if ((e as { code?: number }).code === 6) return "duplicate"; // ALREADY_EXISTS
     throw e;
   }
+  if (!deliverNow) return "queued";
   return deliver(ref);
 }
 

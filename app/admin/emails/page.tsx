@@ -115,7 +115,13 @@ function Announcement({ onSent }: { onSent: () => void }) {
       const r = await call<typeof parsed.data, { count: number; sent: number; queued: number }>("sendAnnouncement", parsed.data);
       setCount(r.count);
       if (!dryRun) {
-        toast.success(`Sent ${r.sent}${r.queued ? ` · ${r.queued} waiting for tomorrow's limit` : ""}`);
+        if (r.sent > 0 && r.queued > 0) {
+          toast.success(`Sent ${r.sent} immediately · ${r.queued} queued for delivery.`);
+        } else if (r.sent > 0) {
+          toast.success(`Sent ${r.sent} emails successfully!`);
+        } else {
+          toast.success(`Queued ${r.queued} emails. Sending in background.`);
+        }
         onSent();
       }
     } catch (e) {
@@ -154,7 +160,13 @@ function Reminders({ onSent }: { onSent: () => void }) {
       const r = await call<Record<string, unknown>, { count: number; sent: number; skipped: number }>("sendReminders", { segment, dryRun, ...(segment === "position" ? { positionId } : {}), ...(batch ? { batch } : {}) });
       setCount(r.count);
       if (!dryRun) {
-        toast.success(`Sent ${r.sent}${r.skipped ? ` · ${r.skipped} waiting for tomorrow's limit` : ""}`);
+        if (r.sent > 0 && r.skipped > 0) {
+          toast.success(`Sent ${r.sent} immediately · ${r.skipped} queued for delivery.`);
+        } else if (r.sent > 0) {
+          toast.success(`Sent ${r.sent} reminders successfully!`);
+        } else {
+          toast.success(`Queued ${r.skipped} reminders. Sending in background.`);
+        }
         onSent();
       }
     } catch (e) {

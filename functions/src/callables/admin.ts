@@ -5,6 +5,7 @@ import { flushLive } from "../lib/live";
 import { audit, requireAdmin, requireVoterAdmin } from "../auth/guards";
 import { directoryEntry, emailUniqueOrThrow, refreshEligible } from "../lib/helpers";
 import { announcementEmail, correctionEmail, queueEmail, reminderEmail } from "../lib/mailer";
+import { drainQueue } from "../triggers/mail-triggers";
 import { mailAccounts } from "../lib/mail-accounts";
 import {
   AdminUpdateStudentInput, ImportStudentsInput, IMPORT_HEADER_MAP, NIAT_ID_REGEX, RecountInput, ResolveRequestInput,
@@ -259,16 +260,16 @@ export const sendReminders = onCall(callOpts, async (req) => {
   if (input.dryRun) return { count: targets.length, sent: 0, skipped: 0 };
 
   const day = new Date().toISOString().slice(0, 10);
-  let sent = 0;
-  let skipped = 0; // = queued for later (both Brevo accounts at today's limit)
+  let queued = 0;
   for (const t of targets) {
     const m = reminderEmail((t.get("name") as string).split(" ")[0], t.id);
-    const r = await queueEmail("reminder", t.get("email") as string, m.subject, m.html, `reminder_${day}_${t.id}`);
-    if (r === "sent") sent++;
-    else if (r === "queued") skipped++;
+    const r = await queueEmail("reminder", t.get("email") as string, m.subject, m.html, `reminder_${day}_${t.id}`, false);
+    if (r !== "duplicate") queued++;
   }
-  await audit(admin.email, "admin", "reminders_sent", null, { segment: input.segment, batch: input.batch ?? null, sent, skipped });
-  return { count: targets.length, sent, skipped };
+  const sent = await drainQueue(20).catch(() => 0);
+  const remaining = Math.max(0, queued - sent);
+  await audit(admin.email, "admin", "reminders_sent", null, { segment: input.segment, batch: input.batch ?? null, sent, skipped: remaining });
+  return { count: targets.length, sent, skipped: remaining };
 });
 
 /** Disaster recovery (9001): recompute a tally from votes — read-only over votes. */
@@ -304,16 +305,16 @@ export const sendAnnouncement = onCall(callOpts, async (req) => {
   });
   if (input.dryRun) return { count: targets.length, sent: 0, queued: 0 };
 
-  let sent = 0;
   let queued = 0;
   for (const t of targets) {
     const m = announcementEmail(input.subject, input.message, (t.get("name") as string).split(" ")[0]);
-    const r = await queueEmail("announcement", t.get("email") as string, m.subject, m.html);
-    if (r === "sent") sent++;
-    else if (r === "queued") queued++;
+    await queueEmail("announcement", t.get("email") as string, m.subject, m.html, undefined, false);
+    queued++;
   }
-  await audit(admin.email, "admin", "announcement_sent", null, { segment: input.segment, batch: input.batch ?? null, count: targets.length, sent, queued });
-  return { count: targets.length, sent, queued };
+  const sent = await drainQueue(20).catch(() => 0);
+  const remaining = Math.max(0, queued - sent);
+  await audit(admin.email, "admin", "announcement_sent", null, { segment: input.segment, batch: input.batch ?? null, count: targets.length, sent, queued: remaining });
+  return { count: targets.length, sent, queued: remaining };
 });
 
 /** Email dashboard: accounts configured, today's usage per account, emails waiting. */

@@ -1122,6 +1122,7 @@
        * into. It is a quiet line; it can simply be there.
        */
       #credit {
+        display: none !important;
         position: fixed;
         left: 50%; bottom: 10px;
         transform: translateX(-50%);
@@ -3669,7 +3670,7 @@ yellow means they have noticed &mdash; drop it on them<br />
       sentence rather than a banner, and a reader who wants the fonts will follow the word that
       offers them. Opens away from the game, so a run is never lost to a click on a credit.
     -->
-    <div id="credit">Made with FGD fonts, download <a href="https://fgdesigners.xyz/" target="_blank" rel="noopener noreferrer">here</a> &middot; <a href="#" onclick="window.replayIntro(); return false;" style="color: inherit; text-decoration: underline; margin-left: 6px;">Replay Intro</a></div>
+    <div id="credit" style="display: none !important;"></div>
 
     <!--
       The cookie question. Hidden by default and only ever revealed by src/analytics.js —

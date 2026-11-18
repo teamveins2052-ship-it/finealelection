@@ -9,7 +9,6 @@ import { useAdminData } from "@/components/admin/data";
 import { Button } from "@/components/ui/button";
 import { Card, Chip, Input, Label, Skeleton } from "@/components/ui/primitives";
 import { Sheet } from "@/components/ui/sheet";
-import { useElection } from "@/hooks/use-election";
 import { call, errorMessage } from "@/lib/client-data";
 import type { Student } from "@/lib/schema";
 import type { WithId } from "@/lib/schema/converters";
@@ -96,11 +95,9 @@ export default function StudentsPage() {
 
 function EditStudent({ student, onClose }: { student: WithId<Student>; onClose: () => void }) {
   const { positions } = useAdminData();
-  const election = useElection();
   const [form, setForm] = useState({ name: student.name, email: student.email, phone: student.phone, admissionNo: student.admissionNo, status: student.status });
   const [positionId, setPositionId] = useState(student.nomineeOf ?? "");
   const [busy, setBusy] = useState<string | null>(null);
-  const ballotLocked = election.status === "ready" && Date.now() >= election.settings.opensAt;
 
   const save = async () => {
     setBusy("save");
@@ -163,11 +160,10 @@ function EditStudent({ student, onClose }: { student: WithId<Student>; onClose: 
 
         <div className="space-y-2 border-t border-border pt-4">
           <p className="text-sm font-semibold">Nominee</p>
-          {ballotLocked && <p className="text-xs text-warning">Nominees are locked once voting opens.</p>}
           {student.isNominee ? (
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm">Nominee for <b>{positions?.find((p) => p._id === student.nomineeOf)?.name}</b></span>
-              <Button size="sm" variant="destructive" onClick={() => nominee(false)} loading={busy === "nominee"} disabled={ballotLocked}>Remove</Button>
+              <Button size="sm" variant="destructive" onClick={() => nominee(false)} loading={busy === "nominee"}>Remove</Button>
             </div>
           ) : (
             <div className="flex gap-2">
@@ -175,7 +171,7 @@ function EditStudent({ student, onClose }: { student: WithId<Student>; onClose: 
                 <option value="">Choose position…</option>
                 {positions?.filter((p) => p.active).map((p) => <option key={p._id} value={p._id}>{p.name}</option>)}
               </select>
-              <Button size="sm" onClick={() => nominee(true)} loading={busy === "nominee"} disabled={ballotLocked || !positionId || student.status !== "active"}>Make nominee</Button>
+              <Button size="sm" onClick={() => nominee(true)} loading={busy === "nominee"} disabled={!positionId || student.status !== "active"}>Make nominee</Button>
             </div>
           )}
         </div>

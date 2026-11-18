@@ -3,12 +3,13 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, CheckCircle2, Users } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Trophy, Users } from "lucide-react";
 import { ClubIcon } from "@/components/shared/club-icon";
 import { PausedBanner } from "@/components/shared/status";
 import { EmptyState, ErrorState, LiveDot, Skeleton } from "@/components/ui/primitives";
 import { NomineeRow } from "@/components/vote/nominee-row";
 import { AnimatedNumber } from "@/components/vote/animated-number";
+import { LeaderboardPodium } from "@/components/ui/leaderboard-podium";
 import { useAsync } from "@/hooks/use-async";
 import { useElection } from "@/hooks/use-election";
 import { useMyVote, useVotedPositions } from "@/hooks/use-my-votes";
@@ -49,7 +50,6 @@ export default function PositionPage() {
   if (!position) return <EmptyState icon={Users} title="This position doesn't exist." />;
   const total = tally?.total ?? 0;
   const phase = election.status === "ready" ? election.phase : null;
-  const myNominee = myVote ? data.data.nominees.find((n) => n._id === myVote.nomineeId) : null;
 
   return (
     <div className="space-y-4">
@@ -57,8 +57,11 @@ export default function PositionPage() {
         <ArrowLeft className="size-4" /> All clubs
       </Link>
       <div className="flex items-center gap-3">
-        <span className="grid size-12 place-items-center rounded-md" style={{ background: `${position.color}1f` }}>
-          <ClubIcon name={position.icon} color={position.color} className="size-6" />
+        <span
+          className="relative grid size-14 shrink-0 place-items-center rounded-full overflow-hidden bg-white border-2 p-2 shadow-sm"
+          style={{ borderColor: `${position.color}80` }}
+        >
+          <ClubIcon name={position.icon} id={position._id} color={position.color} className="size-full object-contain" />
         </span>
         <div className="min-w-0 flex-1">
           <h1 className="font-display text-[22px] leading-7 font-semibold">{position.name}</h1>
@@ -74,32 +77,60 @@ export default function PositionPage() {
         <div className="flex items-center gap-2 rounded-lg border border-success/30 bg-success/10 p-3 text-sm">
           <CheckCircle2 className="size-5 shrink-0 text-success" />
           <span>
-            You voted{myNominee ? <> for <b>{myNominee.name}</b></> : null}
+            You voted for {position.name}{/* the choice itself is never shown again */}
             {myVote?.receiptCode ? <> · Receipt <span className="font-mono font-semibold">{myVote.receiptCode}</span></> : null}
           </span>
         </div>
       )}
 
       {ranked.length === 0 ? (
-        <EmptyState icon={Users} title="No nominees yet." />
+        <div className="rounded-2xl border border-border bg-surface p-8 text-center flex flex-col items-center justify-center space-y-2">
+          <Users className="size-8 text-muted/40" />
+          <p className="font-semibold text-ink text-base">No candidates registered yet</p>
+          <p className="text-xs text-muted max-w-xs">
+            Candidates for {position.name} will be announced soon. You can vote in other clubs in the meantime.
+          </p>
+          <Link href="/vote" className="mt-2 text-xs font-bold text-primary hover:underline">
+            ← Back to Ballot
+          </Link>
+        </div>
       ) : (
-        <ul className="grid gap-2 lg:grid-cols-2" aria-live="off">
-          {ranked.map(({ n, votes }, i) => (
-            <NomineeRow
-              key={n._id}
-              nominee={n}
-              rank={i + 1}
-              votes={votes}
-              pctValue={pct(votes, total)}
-              color={position.color}
-              leader={i === 0}
-              mine={myVote?.nomineeId === n._id}
+        <>
+          <div className="rounded-xl border border-border bg-surface p-4 shadow-sm flex flex-col items-center">
+            <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted mb-2">
+              <Trophy className="size-3.5 text-warning" /> Live {position.name} Standings
+            </div>
+            <LeaderboardPodium
+              size="sm"
+              rankings={ranked.slice(0, 3).map(({ n, votes }, i) => ({
+                userId: n._id,
+                userName: n.name.split(" ")[0] + (n.name.split(" ")[1] ? " " + n.name.split(" ")[1][0] + "." : ""),
+                value: votes,
+                avatarUrl: n.photoUrl || undefined,
+                rank: i + 1,
+              }))}
+              showValue
+              showAvatar
             />
-          ))}
-        </ul>
+          </div>
+
+          <ul className="grid gap-2 lg:grid-cols-2" aria-live="off">
+            {ranked.map(({ n, votes }, i) => (
+              <NomineeRow
+                key={n._id}
+                nominee={n}
+                rank={i + 1}
+                votes={votes}
+                pctValue={pct(votes, total)}
+                color={position.color}
+                leader={i === 0}
+              />
+            ))}
+          </ul>
+        </>
       )}
 
-      {!voted && phase === "voting" && (
+      {!voted && phase === "voting" && ranked.length > 0 && (
         <p className="sticky bottom-[calc(80px+env(safe-area-inset-bottom))] rounded-full bg-surface-2/95 py-2 text-center text-sm font-semibold text-muted backdrop-blur lg:bottom-4">
           Tap a nominee to view and vote
         </p>

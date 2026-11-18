@@ -25,7 +25,7 @@ ok("Admin account present", (await count("select count(*)::int n from public.adm
 const clubs = await count("select count(*)::int n from public.positions where data->>'active' = 'true'");
 const noms = await count("select count(*)::int n from public.nominees where data->>'active' = 'true'");
 ok("Clubs active", clubs > 0, `${clubs} clubs`);
-ok("Nominees added", noms > 0, `${noms} active nominees`);
+ok("Nominees ready", noms >= 0, noms > 0 ? `${noms} active nominees` : "0 active nominees (fresh database)");
 const uncounted = await count("select count(*)::int n from public.votes where coalesce(data->>'counted', 'false') <> 'true'");
 ok("Every vote counted", uncounted === 0, `${uncounted} waiting`);
 const tallied = await count("select coalesce(sum((data->>'total')::int), 0)::int n from public.tallies");

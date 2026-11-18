@@ -286,7 +286,8 @@ export async function handleDb(raw: unknown, token: AuthToken | null) {
       const pinned = req.where.some(([f, op]) => op === "==" && (f === ownerField || (req.collection === "predictions" && f === "niatId")));
       if (!pinned) throw DENIED();
     }
-    q = q.limit(Math.min(req.limit ?? 500, admin ? 5000 : 500));
+    const maxAllowed = admin ? 5000 : 500;
+    q = q.limit(req.limit ? Math.min(req.limit, maxAllowed) : maxAllowed);
     const snap = await q.get();
     const docs = [];
     for (const d of snap.docs) if (await canRead(ctx, req.collection, d.id, d.data()!)) docs.push(out(d));

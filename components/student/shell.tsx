@@ -120,7 +120,7 @@ export function StudentShell({ children, nomineeOnly }: { children: React.ReactN
     <div className="min-h-dvh pb-[calc(72px+env(safe-area-inset-bottom))] lg:pb-8">
       <OfflineBar />
       <Header isNominee={student.isNominee} />
-      <main className="mx-auto w-full max-w-6xl px-4 pt-4 sm:px-6 lg:px-8 lg:pt-8">{children}</main>
+      <main className="mx-auto w-full max-w-[1720px] px-4 pt-4 sm:px-6 lg:px-10 xl:px-12 lg:pt-8">{children}</main>
       <BottomNav isNominee={student.isNominee} />
       <Sheet open={kicked} onClose={() => undefined} dismissible={false} title="Signed in elsewhere">
         <div className="space-y-4 text-center">
@@ -150,7 +150,7 @@ function Header({ isNominee }: { isNominee: boolean }) {
   const pathname = usePathname();
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-bg/90 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6 lg:h-16 lg:px-8">
+      <div className="mx-auto flex h-14 max-w-[1720px] items-center justify-between gap-3 px-4 sm:px-6 lg:h-16 lg:px-10 xl:px-12">
         <Link href="/dashboard" aria-label="Home" className="shrink-0">
           <Logo />
         </Link>

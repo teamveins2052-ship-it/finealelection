@@ -78,6 +78,10 @@
   --color-club-tech: var(--club-tech);
   --color-club-other: var(--club-other);
 
+  --color-rank-1: #eab308;
+  --color-rank-2: #94a3b8;
+  --color-rank-3: #b45309;
+
   --font-display: var(--font-display-face), system-ui, sans-serif;
   --font-sans: var(--font-nunito), system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
@@ -144,6 +148,16 @@ body {
 :focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
 }
 
 @media (prefers-reduced-motion: reduce) {

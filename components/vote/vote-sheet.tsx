@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
-import { Check, Clock, Copy, Share2, TriangleAlert } from "lucide-react";
+import { Check, Clock, Share2, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { Sheet } from "@/components/ui/sheet";
@@ -129,16 +129,7 @@ function ReceiptCard({ position, firstName, onClose }: { position: Position & { 
       <p className="text-sm text-muted">Keep your receipt code.</p>
       <div className="flex items-center justify-center gap-2 rounded-md bg-surface-2 p-3">
         {code ? (
-          <>
-            <span className="font-mono text-lg font-semibold tracking-wider">{code}</span>
-            <button
-              aria-label="Copy receipt code"
-              className="grid size-11 place-items-center rounded-md hover:bg-border"
-              onClick={() => navigator.clipboard.writeText(code).then(() => toast.success("Receipt copied"))}
-            >
-              <Copy className="size-4" />
-            </button>
-          </>
+          <span className="font-mono text-lg font-semibold tracking-wider">{code}</span>
         ) : (
           <span className="text-sm text-muted">Generating receipt…</span>
         )}

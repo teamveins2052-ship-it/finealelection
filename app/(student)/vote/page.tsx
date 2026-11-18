@@ -32,7 +32,7 @@ export default function VotePage() {
 
       {positions.status === "error" && <ErrorState onRetry={positions.retry} />}
       {positions.status === "ready" && ordered.length === 0 && <EmptyState icon={Vote} title="No positions yet." />}
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {positions.status === "loading" && [0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-[76px] w-full" />)}
         {ordered.map((p) => (
           <PositionCard key={p._id} position={p} voted={voted.has(p._id)} closed={phase === "closed" || phase === "results"} total={tallies.data?.[p._id]?.total} />

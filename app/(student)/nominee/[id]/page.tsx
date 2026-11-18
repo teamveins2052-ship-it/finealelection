@@ -5,8 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, serverTimestamp, setDoc, where } from "@/lib/db/firestore";
 import { toast } from "sonner";
-import { ArrowLeft, Flame, HandHeart, ImageOff, Lock, MessageCircleQuestion, Users, Vote } from "lucide-react";
-import { Avatar } from "@/components/ui/avatar";
+import { ArrowLeft, BadgeCheck, Check, Flame, HandHeart, ImageOff, Lock, MessageCircleQuestion, Plus, Users, Vote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, EmptyState, ErrorState, LiveDot, Skeleton, Textarea } from "@/components/ui/primitives";
 import { VoteSheet } from "@/components/vote/vote-sheet";
@@ -42,7 +41,7 @@ export default function NomineePage() {
   if (data.status === "loading") {
     return (
       <div className="flex flex-col items-center gap-3 pt-4">
-        <Skeleton className="size-24 rounded-full" />
+        <Skeleton className="aspect-[3/4.3] w-full max-w-sm rounded-[28px]" />
         <Skeleton className="h-6 w-40" />
         <Skeleton className="h-4 w-56" />
         <Skeleton className="mt-4 h-40 w-full" />
@@ -64,84 +63,198 @@ export default function NomineePage() {
   const open = settings ? canVote(settings) : false;
 
   return (
-    <div className="space-y-5 pb-24">
-      <Link href={`/vote/${position._id}`} className="-ml-2 inline-flex h-11 items-center gap-1 px-2 text-sm text-muted">
-        <ArrowLeft className="size-4" /> {position.name}
-      </Link>
-
-      <div className="lg:grid lg:grid-cols-[340px_1fr] lg:items-start lg:gap-10">
-      <section className="flex flex-col items-center gap-2 text-center lg:sticky lg:top-24 lg:rounded-xl lg:border lg:border-border lg:bg-surface lg:p-6 lg:shadow-card">
-        <Avatar src={nominee.photoUrl} name={nominee.name} color={position.color} size={96} ring={nominee.hasActiveStory} />
-        <h1 className="font-display text-[22px] leading-7 font-semibold">{nominee.name}</h1>
-        <p className="text-sm text-muted">
-          Batch {nominee.batch} · {position.name}
-        </p>
-        <p className="flex items-center gap-2 text-sm">
-          <LiveDot />
-          <span className="font-display font-semibold tabular-nums">
-            <AnimatedNumber value={votes} /> votes · {pct(votes, tally?.total ?? 0)}%
-          </span>
-        </p>
-        <Reactions nomineeId={nominee._id} niatId={student.niatId} initial={nominee.reactionCounts} />
-      </section>
-
-      <div className="mt-5 space-y-5 lg:mt-0">
-      <div role="tablist" aria-label="Profile sections" className="sticky top-14 z-10 -mx-4 flex border-b border-border bg-bg/95 px-4 backdrop-blur sm:-mx-6 sm:px-6 lg:top-16 lg:mx-0 lg:px-0">
-        {TABS.map((t) => (
-          <button
-            key={t}
-            role="tab"
-            aria-selected={tab === t}
-            onClick={() => setTab(t)}
-            className={cn("h-12 flex-1 border-b-2 text-sm font-semibold", tab === t ? "border-primary text-primary" : "border-transparent text-muted")}
-          >
-            {t}
-          </button>
-        ))}
+    <div className="mx-auto max-w-5xl space-y-6 pb-28 md:pb-12">
+      {/* Top Bar: Back Link & Club Badge */}
+      <div className="flex items-center justify-between">
+        <Link
+          href={`/vote/${position._id}`}
+          className="inline-flex h-9 items-center gap-1.5 rounded-full bg-surface-2/80 px-3.5 text-xs font-bold text-ink transition hover:bg-border/60"
+        >
+          <ArrowLeft className="size-3.5" /> Back to {position.name}
+        </Link>
+        <span
+          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold"
+          style={{ background: `${position.color}18`, color: position.color }}
+        >
+          {position.club}
+        </span>
       </div>
 
-      <div role="tabpanel">
-        {tab === "Bio" && (nominee.bio ? <p className="leading-7 whitespace-pre-line">{nominee.bio}</p> : <EmptyState icon={Users} title="No bio yet." />)}
-        {tab === "If I win" &&
-          (nominee.promises.length ? (
-            <ol className="space-y-3">
-              {nominee.promises.map((p, i) => (
-                <li key={i} className="flex gap-3">
-                  <span className="grid size-8 shrink-0 place-items-center rounded-full font-display font-bold text-primary-fg" style={{ background: position.color }}>
-                    {i + 1}
+      {/* Responsive Layout: 1-col on mobile, balanced 2-col on tablet & desktop */}
+      <div className="grid gap-6 md:grid-cols-[340px_1fr] lg:grid-cols-[360px_1fr] lg:gap-8 items-start">
+        {/* Left Column: Photo Card + Desktop Action Box */}
+        <div className="space-y-4 md:sticky md:top-24">
+          <section className="relative mx-auto aspect-[3/4.2] w-full max-w-sm overflow-hidden rounded-[28px] border-[5px] border-surface bg-ink shadow-card">
+            <ProfilePhoto src={nominee.photoUrl} name={nominee.name} color={position.color} />
+            <div aria-hidden className="absolute inset-x-0 bottom-0 h-[58%] backdrop-blur-md [mask-image:linear-gradient(to_top,black_40%,transparent)]" />
+            <div aria-hidden className="absolute inset-x-0 bottom-0 h-[62%] bg-gradient-to-t from-black/85 via-black/45 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 space-y-2.5 p-5 text-white">
+              <h1 className="flex items-center gap-1.5 text-[22px] leading-7 font-bold">
+                <span className="truncate">{nominee.name}</span>
+                <BadgeCheck className="size-5 shrink-0 fill-white text-ink" aria-label="Official nominee" />
+              </h1>
+              <p className="line-clamp-2 text-xs leading-relaxed text-white/80">
+                {nominee.bio?.trim() || `Batch ${nominee.batch} · ${position.name}`}
+              </p>
+              <p className="flex items-center gap-2 text-xs font-semibold text-white/85">
+                <LiveDot />
+                <span className="tabular-nums">
+                  <AnimatedNumber value={votes} /> votes · {pct(votes, tally?.total ?? 0)}%
+                </span>
+                <span className="text-white/50">·</span>
+                <span className="truncate">{position.club}</span>
+              </p>
+              <div className="flex items-center gap-2 pt-1">
+                <Reactions nomineeId={nominee._id} niatId={student.niatId} initial={nominee.reactionCounts} />
+                {open && !already && !selfBlocked && (
+                  <button
+                    onClick={() => setSheet(true)}
+                    className="ml-auto inline-flex h-10 items-center gap-1.5 rounded-full bg-white px-4 text-xs font-bold text-ink shadow-sm transition-transform active:scale-95"
+                  >
+                    Vote <Plus className="size-3.5" />
+                  </button>
+                )}
+                {already && (
+                  <span className="ml-auto inline-flex h-10 items-center gap-1.5 rounded-full bg-white/20 px-3.5 text-xs font-semibold backdrop-blur">
+                    <Check className="size-3.5" /> Voted
                   </span>
-                  <p className="pt-1 text-lg leading-7">{p}</p>
-                </li>
+                )}
+              </div>
+            </div>
+          </section>
+
+          {/* Desktop/Tablet Dedicated CTA */}
+          <div className="hidden md:block rounded-2xl border border-border bg-surface p-4 shadow-sm">
+            {already ? (
+              <div className="flex items-center justify-center gap-2 py-2 text-sm font-bold text-success">
+                <Check className="size-4.5" /> You voted in this club
+              </div>
+            ) : !open ? (
+              <p className="py-2 text-center text-xs font-medium text-muted">
+                {settings?.paused ? "Voting is paused." : election.status === "ready" && (election.phase === "setup" || election.phase === "campaign") ? "Voting hasn't opened yet." : "Voting is closed."}
+              </p>
+            ) : selfBlocked ? (
+              <p className="py-2 text-center text-xs font-medium text-muted">Nominees can&apos;t vote in their own race.</p>
+            ) : (
+              <Button size="lg" className="w-full h-12 rounded-xl text-sm font-bold shadow-md hover:opacity-95" onClick={() => setSheet(true)}>
+                <Vote className="size-4.5" /> Vote for {nominee.name.split(" ")[0]}
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Right Column: Segmented Tabs & Content Panel */}
+        <div className="space-y-4 min-w-0">
+          <div
+            role="tablist"
+            aria-label="Profile sections"
+            className="flex rounded-2xl border border-border bg-surface p-1.5 shadow-xs"
+          >
+            {TABS.map((t) => (
+              <button
+                key={t}
+                role="tab"
+                aria-selected={tab === t}
+                onClick={() => setTab(t)}
+                className={cn(
+                  "flex-1 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all",
+                  tab === t
+                    ? "bg-ink text-bg shadow-xs"
+                    : "text-muted hover:text-ink hover:bg-surface-2/60"
+                )}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+
+          <div
+            role="tabpanel"
+            className="rounded-2xl border border-border bg-surface p-5 sm:p-7 shadow-sm min-h-[340px]"
+          >
+            {tab === "Bio" &&
+              (nominee.bio ? (
+                <p className="leading-relaxed text-sm sm:text-base text-ink whitespace-pre-line">{nominee.bio}</p>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-14 text-center">
+                  <div className="grid size-12 place-items-center rounded-full bg-surface-2 text-muted mb-3">
+                    <Users className="size-6" />
+                  </div>
+                  <p className="font-bold text-ink text-sm">No bio published yet</p>
+                  <p className="text-xs text-muted mt-1 max-w-xs">
+                    {nominee.name} hasn&apos;t added their biography yet. Check out their promises or ask a question in Q&amp;A.
+                  </p>
+                </div>
               ))}
-            </ol>
-          ) : (
-            <EmptyState icon={Users} title="No promises yet." />
-          ))}
-        {tab === "Posts" && <Posts nomineeId={nominee._id} />}
-        {tab === "Q&A" && <QandA nomineeId={nominee._id} firstName={nominee.name.split(" ")[0]} isSelf={isSelf} />}
-      </div>
-      </div>
+
+            {tab === "If I win" &&
+              (nominee.promises.length ? (
+                <ol className="space-y-3">
+                  {nominee.promises.map((p, i) => (
+                    <li key={i} className="flex items-start gap-3 p-3.5 rounded-xl border border-border/60 bg-surface-2/30">
+                      <span
+                        className="grid size-7 shrink-0 place-items-center rounded-lg font-display text-xs font-bold text-white shadow-xs"
+                        style={{ background: position.color }}
+                      >
+                        {i + 1}
+                      </span>
+                      <p className="text-sm font-medium leading-relaxed text-ink pt-0.5">{p}</p>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-14 text-center">
+                  <div className="grid size-12 place-items-center rounded-full bg-surface-2 text-muted mb-3">
+                    <Users className="size-6" />
+                  </div>
+                  <p className="font-bold text-ink text-sm">No promises listed yet</p>
+                  <p className="text-xs text-muted mt-1 max-w-xs">
+                    Campaign commitments and plans will appear here once published.
+                  </p>
+                </div>
+              ))}
+
+            {tab === "Posts" && <Posts nomineeId={nominee._id} />}
+            {tab === "Q&A" && <QandA nomineeId={nominee._id} firstName={nominee.name.split(" ")[0]} isSelf={isSelf} />}
+          </div>
+        </div>
       </div>
 
-      <div className="fixed inset-x-0 bottom-[calc(64px+env(safe-area-inset-bottom))] z-30 border-t border-border bg-surface/95 p-3 backdrop-blur lg:bottom-0">
+      {/* Mobile-only Sticky Vote Bar (hidden on tablet and desktop screens) */}
+      <div className="fixed inset-x-0 bottom-[calc(60px+env(safe-area-inset-bottom))] z-30 border-t border-border bg-surface/95 p-3 backdrop-blur shadow-lg md:hidden">
         <div className="mx-auto max-w-md">
           {already ? (
-            <p className="py-3 text-center text-sm font-semibold text-success">You&apos;ve already voted in this club.</p>
+            <p className="py-2 text-center text-sm font-bold text-success">You&apos;ve already voted in this club.</p>
           ) : !open ? (
-            <p className="py-3 text-center text-sm text-muted">
+            <p className="py-2 text-center text-xs text-muted">
               {settings?.paused ? "Voting is paused." : election.status === "ready" && (election.phase === "setup" || election.phase === "campaign") ? "Voting hasn't opened yet." : "Voting is closed."}
             </p>
           ) : selfBlocked ? (
-            <p className="py-3 text-center text-sm text-muted">Nominees can&apos;t vote in their own race.</p>
+            <p className="py-2 text-center text-xs text-muted">Nominees can&apos;t vote in their own race.</p>
           ) : (
-            <Button size="lg" className="w-full" onClick={() => setSheet(true)}>
-              <Vote className="size-5" /> Vote for {nominee.name.split(" ")[0]}
+            <Button size="lg" className="w-full h-11 rounded-xl text-sm font-bold shadow-md" onClick={() => setSheet(true)}>
+              <Vote className="size-4.5" /> Vote for {nominee.name.split(" ")[0]}
             </Button>
           )}
         </div>
       </div>
 
       <VoteSheet open={sheet} onClose={() => setSheet(false)} voterId={student.niatId} firstName={student.name.split(" ")[0]} position={position} nominee={nominee} />
+    </div>
+  );
+}
+
+/** Full-card photo; without one, the initials on a club-colour gradient. */
+function ProfilePhoto({ src, name, color }: { src: string | null; name: string; color: string }) {
+  const [failed, setFailed] = useState(false);
+  const initials = name.split(/\s+/).map((p) => p[0]).slice(0, 2).join("").toUpperCase();
+  if (src && !failed) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={src} alt={name} onError={() => setFailed(true)} className="absolute inset-0 size-full object-cover" />;
+  }
+  return (
+    <div className="absolute inset-0 grid place-items-start justify-center pt-[22%]" style={{ background: `linear-gradient(165deg, ${color}, ${color}55 70%)` }}>
+      <span aria-hidden className="font-display text-[96px] leading-none font-bold text-white/90 drop-shadow">{initials}</span>
     </div>
   );
 }
@@ -190,8 +303,8 @@ function Reactions({ nomineeId, niatId, initial }: { nomineeId: string; niatId: 
             aria-pressed={mine === t}
             aria-label={t === "fire" ? "Fire reaction" : "Clap reaction"}
             className={cn(
-              "inline-flex h-11 items-center gap-1.5 rounded-full border px-4 text-sm font-semibold transition-transform active:scale-95",
-              mine === t ? "border-2 border-ink bg-highlight text-text shadow-ink" : "border-2 border-ink/20 bg-surface",
+              "inline-flex h-11 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold transition-transform active:scale-95",
+              mine === t ? "bg-highlight text-ink" : "bg-white/15 text-white backdrop-blur",
             )}
           >
             <Icon className="size-4" /> <span className="tabular-nums">{counts[t]}</span>

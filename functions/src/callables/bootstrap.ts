@@ -5,13 +5,13 @@ import { audit, verifiedEmail } from "../auth/guards";
 
 /** Placeholder ballot — edit in Admin → Positions & Nominees (SEEDDATA §3.2). */
 const POSITIONS = [
-  { id: "nsgc-president", name: "NSGC President", club: "NSGC", color: "#5B3DF5", icon: "Landmark" },
-  { id: "sports-president", name: "Sports Club President", club: "Sports", color: "#12B76A", icon: "Trophy" },
-  { id: "media-head", name: "Media Club Head", club: "Media", color: "#FF5A36", icon: "Camera" },
-  { id: "genai-lead", name: "GenAI Club Lead", club: "GenAI", color: "#0BA5EC", icon: "Sparkles" },
-  { id: "cultural-head", name: "Cultural Club Head", club: "Cultural", color: "#EE46BC", icon: "Music" },
-  { id: "tech-lead", name: "Tech Club Lead", club: "Tech", color: "#F79009", icon: "Code2" },
-  { id: "literary-head", name: "Literary Club Head", club: "Literary", color: "#667085", icon: "BookOpen" },
+  { id: "genai-lead", name: "Gen AI Club Lead", club: "Gen AI Club", color: "#0BA5EC", icon: "Sparkles", order: 1 },
+  { id: "tech-lead", name: "Advanced Tech Lead", club: "Advanced Tech", color: "#F79009", icon: "Code2", order: 2 },
+  { id: "edc-lead", name: "EDC Lead", club: "Entrepreneurship Development Club (EDC)", color: "#10B981", icon: "Rocket", order: 3 },
+  { id: "media-head", name: "Media Club Head", club: "Media Club", color: "#FF5A36", icon: "Camera", order: 4 },
+  { id: "arts-head", name: "Arts Club Head", club: "Arts Club", color: "#EE46BC", icon: "Palette", order: 5 },
+  { id: "sports-president", name: "Sports Club President", club: "Sports Club", color: "#12B76A", icon: "Trophy", order: 6 },
+  { id: "nsgc-president", name: "NSGC President", club: "NIAT Student General Council (NSGC)", color: "#5B3DF5", icon: "Landmark", order: 7 },
 ];
 
 /** "YYYY-MM-DDTHH:mm" read as IST. */

@@ -40,6 +40,15 @@ export function getNominees(positionId: string): Promise<WithId<Nominee>[]> {
   });
 }
 
+export function getAllNominees(): Promise<WithId<Nominee>[]> {
+  return memo("all-nominees", 30_000, async () => {
+    const snap = await getDocs(
+      query(collection(backend().db, "nominees").withConverter(conv.nominee), where("active", "==", true)),
+    );
+    return snap.docs.map((d) => d.data());
+  });
+}
+
 export function getNominee(id: string): Promise<WithId<Nominee> | null> {
   return memo(`nominee:${id}`, 30_000, async () => {
     const snap = await getDoc(doc(backend().db, "nominees", id).withConverter(conv.nominee));

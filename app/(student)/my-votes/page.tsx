@@ -2,19 +2,18 @@
 
 import Link from "next/link";
 import { toast } from "sonner";
-import { Award, Copy, ListChecks, Share2 } from "lucide-react";
+import { Award, ListChecks, Share2 } from "lucide-react";
 import { ClubIcon } from "@/components/shared/club-icon";
-import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, EmptyState, ErrorState, Skeleton } from "@/components/ui/primitives";
 import { useAsync } from "@/hooks/use-async";
 import { useMyVote, useVotedPositions } from "@/hooks/use-my-votes";
 import { useSession } from "@/hooks/use-session";
-import { getNominees, getPositions } from "@/lib/client-data";
+import { getPositions } from "@/lib/client-data";
 import { fmtIST } from "@/lib/election";
 import type { Position } from "@/lib/schema";
 
-/** V8: choices, time, receipt codes, pending clubs, badges. */
+/** V8: clubs voted (not who for), time, receipt codes, pending clubs, badges. */
 export default function MyVotesPage() {
   const session = useSession();
   const positions = useAsync(() => getPositions(), []);
@@ -96,26 +95,21 @@ export default function MyVotesPage() {
   );
 }
 
+/** The choice itself is never shown again after voting — only that the vote is in. */
 function VotedRow({ position }: { position: Position & { _id: string } }) {
   const vote = useMyVote(position._id, true);
-  const nominees = useAsync(() => getNominees(position._id), [position._id]);
-  const nominee = nominees.status === "ready" && vote ? nominees.data.find((n) => n._id === vote.nomineeId) : null;
   return (
     <Card className="flex items-center gap-3 p-4">
-      <Avatar src={nominee?.photoUrl} name={nominee?.name ?? "?"} color={position.color} size={44} />
+      <ClubIcon name={position.icon} color={position.color} />
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-medium text-muted">{position.name}</p>
-        <div className="truncate font-semibold">{nominee?.name ?? <Skeleton className="h-5 w-28" />}</div>
+        <p className="text-xs font-medium text-muted">{position.club}</p>
+        <div className="truncate font-semibold">Voted for {position.name}</div>
         <p className="text-xs text-muted">{vote?.createdAt ? fmtIST(vote.createdAt.toMillis()) : "Submitting…"}</p>
       </div>
       {vote?.receiptCode ? (
-        <button
-          className="inline-flex h-11 items-center gap-1.5 rounded-md bg-surface-2 px-3 font-mono text-sm font-semibold"
-          onClick={() => navigator.clipboard.writeText(vote.receiptCode!).then(() => toast.success("Receipt copied"))}
-          aria-label={`Copy receipt ${vote.receiptCode}`}
-        >
-          {vote.receiptCode} <Copy className="size-3.5" />
-        </button>
+        <span className="inline-flex h-11 items-center rounded-md bg-surface-2 px-3 font-mono text-sm font-semibold" aria-label={`Receipt ${vote.receiptCode}`}>
+          {vote.receiptCode}
+        </span>
       ) : (
         <Skeleton className="h-11 w-24" />
       )}

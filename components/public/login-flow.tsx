@@ -315,7 +315,7 @@ function EnterIdStep({ onSubmit }: { onSubmit: (id: string) => void }) {
     e.preventDefault();
     const v = id.trim().toUpperCase();
     if (v.length < 6)
-      return setError("Enter your full NIAT ID, e.g. N25H01A0693.");
+      return setError("Enter your full NIAT ID, e.g. N25H01A0001.");
     if (!NIAT_ID_REGEX.test(v) && !/^[A-Z0-9]{6,20}$/.test(v))
       return setError("That doesn't look like a NIAT ID.");
     onSubmit(v);
@@ -337,7 +337,7 @@ function EnterIdStep({ onSubmit }: { onSubmit: (id: string) => void }) {
           autoCapitalize="characters"
           autoComplete="off"
           spellCheck={false}
-          placeholder="e.g. N25H01A0693"
+          placeholder="e.g. N25H01A0001"
           aria-invalid={!!error}
           aria-describedby={error ? "login-niat-err" : undefined}
           className="font-mono tracking-wider uppercase placeholder:font-sans placeholder:tracking-normal placeholder:normal-case"

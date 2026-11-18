@@ -7,6 +7,7 @@ import { ClubIcon } from "@/components/shared/club-icon";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, ErrorState, Skeleton, VoteBar } from "@/components/ui/primitives";
+import { LeaderboardPodium, type LeaderboardRanking } from "@/components/ui/leaderboard-podium";
 import { useAsync } from "@/hooks/use-async";
 import { useElection } from "@/hooks/use-election";
 import { useTallies } from "@/hooks/use-realtime";
@@ -48,19 +49,48 @@ export default function ResultsPage() {
   return (
     <div className="space-y-5">
       <h1 className="font-display text-[28px] leading-[34px] lg:text-[40px] lg:leading-[44px]">Results</h1>
-      <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {data.data.map(({ position, nominees }) => {
         const t = tallies.data?.[position._id];
         const total = t?.total ?? 0;
         const ranked = nominees.map((n) => ({ n, v: t?.counts[n._id] ?? 0 })).sort((a, b) => b.v - a.v);
         const top = ranked[0];
         const tie = ranked.length > 1 && ranked[1].v === top?.v;
+
+        const podiumRankings: LeaderboardRanking[] = ranked.slice(0, 3).map((r, idx) => ({
+          userId: r.n._id,
+          userName: r.n.name,
+          rank: idx + 1,
+          value: r.v,
+          avatarUrl: r.n.photoUrl ?? undefined,
+        }));
+
         return (
           <Card key={position._id} className="overflow-hidden border-t-4" style={{ borderTopColor: position.color }}>
             <div className="flex items-center gap-2 px-4 pt-4 text-sm font-semibold text-muted">
               <ClubIcon name={position.icon} color={position.color} className="size-4" /> {position.name}
             </div>
-            {top && (
+
+            {podiumRankings.length >= 2 ? (
+              <div className="px-2 pt-4 pb-2">
+                <LeaderboardPodium size="sm" rankings={podiumRankings} showValue showAvatar />
+                {!tie && top && (
+                  <div className="mt-2 text-center">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={async () => {
+                        const text = `Congratulations ${top.n.name} — ${position.name}, NIAT Elections '26 🎉`;
+                        if (navigator.share) await navigator.share({ text }).catch(() => undefined);
+                        else navigator.clipboard.writeText(text).then(() => toast.success("Copied"));
+                      }}
+                    >
+                      <Share2 className="size-4" /> Share winner
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ) : top ? (
               <div className="flex flex-col items-center gap-2 p-5 text-center">
                 <div className="relative">
                   <Avatar src={top.n.photoUrl} name={top.n.name} color={position.color} size={120} />
@@ -84,7 +114,7 @@ export default function ResultsPage() {
                   </Button>
                 )}
               </div>
-            )}
+            ) : null}
             <ul className="space-y-3 border-t border-border p-4">
               {ranked.map(({ n, v }) => (
                 <li key={n._id} className="space-y-1.5">

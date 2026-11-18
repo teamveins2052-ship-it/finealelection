@@ -124,7 +124,7 @@ function PositionEditor({ position, nextOrder, onClose }: { position: WithId<Pos
         </div>
         <div>
           <Label>Icon</Label>
-          <div className="flex flex-wrap gap-2">{CLUB_ICON_NAMES.map((n) => <button key={n} aria-label={n} aria-pressed={f.icon === n} onClick={() => setF({ ...f, icon: n })} className="grid size-10 place-items-center rounded-md border border-border aria-pressed:border-primary aria-pressed:bg-primary/10"><ClubIcon name={n} color={f.color} /></button>)}</div>
+          <div className="flex flex-wrap gap-2">{CLUB_ICON_NAMES.map((n) => <button key={n} aria-label={n} aria-pressed={f.icon === n} onClick={() => setF({ ...f, icon: n })} className="grid size-10 place-items-center rounded-md border border-border aria-pressed:border-primary aria-pressed:bg-primary/10"><ClubIcon name={n} color={f.color} preferIcon /></button>)}</div>
         </div>
         <div><Label htmlFor="p-desc">Description</Label><Textarea id="p-desc" maxLength={300} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></div>
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={f.active} onChange={(e) => setF({ ...f, active: e.target.checked })} className="size-4 accent-[var(--primary)]" /> Active (shown on ballot)</label>

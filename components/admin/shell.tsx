@@ -212,7 +212,11 @@ function AdminLogin() {
               e.preventDefault();
               run(async () => {
                 sessionStorage.setItem("niat.adminLogin", "1");
-                await call("sendLoginLink", { email: linkEmail.trim().toLowerCase(), next: "admin" });
+                await call("sendLoginLink", {
+                  email: linkEmail.trim().toLowerCase(),
+                  next: "admin",
+                  redirectTo: `${window.location.origin}/auth/callback`,
+                });
                 setLinkSent(true);
               });
             }}

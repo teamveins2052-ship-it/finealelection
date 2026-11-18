@@ -20,6 +20,7 @@ const Input = z.object({
   niatId: LookupInput.shape.niatId.optional(),
   next: z.enum(["student", "admin"]).default("student"),
   turnstileToken: z.string().max(4096).optional(),
+  redirectTo: z.string().url().optional(),
 });
 
 async function admin(path: string, body: unknown) {
@@ -51,7 +52,16 @@ export const sendLoginLink = onCall(callOpts, async (req) => {
 
   // Make sure an auth user exists (no password; identity is proven only by clicking the link).
   await admin("users", { email, email_confirm: true });
-  const res = await admin("generate_link", { type: "magiclink", email, redirect_to: `${APP_URL}/auth/callback` });
+  let redirectTarget = `${APP_URL}/auth/callback`;
+  if (input.data.redirectTo) {
+    try {
+      const u = new URL(input.data.redirectTo);
+      if (u.pathname === "/auth/callback") redirectTarget = input.data.redirectTo;
+    } catch {
+      // ignore invalid URL and keep default
+    }
+  }
+  const res = await admin("generate_link", { type: "magiclink", email, redirect_to: redirectTarget });
   const link = res.ok ? ((await res.json()) as { action_link?: string; properties?: { action_link?: string } }) : null;
   const url = link?.action_link ?? link?.properties?.action_link;
   if (!url) {

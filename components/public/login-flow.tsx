@@ -478,7 +478,11 @@ function VerifyStep({ d, onBack }: { d: Details; onBack: () => void }) {
         );
       // The link goes ONLY to the sheet's email — proven by the match above (D-01).
       // The server re-checks the match, then emails a one-time Supabase sign-in link.
-      await call("sendLoginLink", { email: parsed.data, niatId: d.niatId });
+      await call("sendLoginLink", {
+        email: parsed.data,
+        niatId: d.niatId,
+        redirectTo: `${window.location.origin}/auth/callback`,
+      });
       localStorage.setItem(EMAIL_LINK_KEY, parsed.data);
       setLinkSent(true);
       setCooldown(60);

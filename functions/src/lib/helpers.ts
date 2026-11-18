@@ -114,4 +114,4 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
   return "full";
 }
 
-export const APP_URL = process.env.APP_URL ?? "http://localhost:3100";
+export const APP_URL = process.env.APP_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "https://semmap.in";

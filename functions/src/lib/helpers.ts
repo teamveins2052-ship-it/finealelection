@@ -93,12 +93,15 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
     }
     tried.add(idx);
     const { key, from } = accounts[idx];
+    const envReplyTo = (process.env.EMAIL_REPLY_TO || "semmap@gmail.com").trim();
+    const replyToEmail = (!envReplyTo || envReplyTo.includes("tarunuttupulusu")) ? "semmap@gmail.com" : envReplyTo;
+
     const res = await fetch("https://api.brevo.com/v3/smtp/email", {
       method: "POST",
       headers: { "api-key": key, "content-type": "application/json" },
       body: JSON.stringify({
         sender: { email: from, name: "NIAT Elections" },
-        ...(process.env.EMAIL_REPLY_TO ? { replyTo: { email: process.env.EMAIL_REPLY_TO, name: "NIAT Elections" } } : {}),
+        replyTo: { email: replyToEmail, name: "NIAT Elections" },
         to: [{ email: to }],
         subject,
         htmlContent: html,

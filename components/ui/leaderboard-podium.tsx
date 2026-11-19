@@ -17,12 +17,12 @@ interface LeaderboardRanking {
 }
 
 // Variants
-const podiumVariants = cva("flex items-end justify-center gap-3 sm:gap-4", {
+const podiumVariants = cva("flex items-end justify-center gap-1.5 sm:gap-3", {
   variants: {
     size: {
-      sm: "gap-2 sm:gap-3",
-      default: "gap-4",
-      lg: "gap-6",
+      sm: "gap-1.5 sm:gap-3",
+      default: "gap-3 sm:gap-4",
+      lg: "gap-4 sm:gap-6",
     },
   },
   defaultVariants: {
@@ -125,7 +125,7 @@ const LeaderboardPodium = React.forwardRef<
     return (
       <div
         ref={ref}
-        className={cn(podiumVariants({ size }), className)}
+        className={cn("w-full max-w-full overflow-hidden", podiumVariants({ size }), className)}
         role="list"
         aria-label="Top 3 rankings"
         {...props}
@@ -144,17 +144,17 @@ const LeaderboardPodium = React.forwardRef<
 
           const itemLabel = `Rank ${ranking.rank}: ${displayName}${showValue ? `, ${ranking.value.toLocaleString()}` : ""}`
 
-          const avatarPixelSize = size === "sm" ? 40 : size === "lg" ? 80 : 56
+          const avatarPixelSize = size === "sm" ? 36 : size === "lg" ? 80 : 56
 
           return (
             <div
               key={ranking.userId}
               role="listitem"
               aria-label={itemLabel}
-              className="flex flex-col items-center"
+              className="flex flex-col items-center min-w-0 shrink-0"
             >
               {/* Avatar */}
-              <div className="relative mb-2" aria-hidden="true">
+              <div className="relative mb-1.5" aria-hidden="true">
                 {showAvatar ? (
                   <Avatar
                     src={ranking.avatarUrl}
@@ -178,7 +178,7 @@ const LeaderboardPodium = React.forwardRef<
               {/* Name */}
               <span
                 className={cn(
-                  "max-w-24 truncate text-center font-medium",
+                  "max-w-16 min-[380px]:max-w-22 truncate text-center font-medium",
                   textSize
                 )}
                 title={displayName}
@@ -191,7 +191,7 @@ const LeaderboardPodium = React.forwardRef<
                 <span
                   className={cn(
                     "text-muted tabular-nums",
-                    size === "sm" ? "text-xs" : "text-sm"
+                    size === "sm" ? "text-[11px]" : "text-sm"
                   )}
                 >
                   {ranking.value.toLocaleString()}
@@ -202,8 +202,8 @@ const LeaderboardPodium = React.forwardRef<
               <div
                 aria-hidden="true"
                 className={cn(
-                  "mt-2 w-22 rounded-t-lg border border-b-0 border-border/40",
-                  size === "sm" && "w-20",
+                  "mt-1.5 w-16 min-[380px]:w-20 rounded-t-lg border border-b-0 border-border/40",
+                  size === "default" && "w-22",
                   size === "lg" && "w-24",
                   podiumHeight,
                   config.bg,
@@ -212,7 +212,7 @@ const LeaderboardPodium = React.forwardRef<
               >
                 <div
                   className={cn(
-                    "flex h-8 items-center justify-center font-bold text-sm",
+                    "flex h-7 min-[380px]:h-8 items-center justify-center font-bold text-xs min-[380px]:text-sm",
                     config.color
                   )}
                 >

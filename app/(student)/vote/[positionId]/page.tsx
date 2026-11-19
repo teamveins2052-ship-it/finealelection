@@ -52,7 +52,7 @@ export default function PositionPage() {
   const phase = election.status === "ready" ? election.phase : null;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 max-w-full overflow-x-hidden">
       <Link href="/vote" className="-ml-2 inline-flex h-11 items-center gap-1 px-2 text-sm text-muted">
         <ArrowLeft className="size-4" /> All clubs
       </Link>
@@ -71,9 +71,10 @@ export default function PositionPage() {
         </div>
       </div>
       {position.description && <p className="text-sm text-muted">{position.description}</p>}
-      <div className="flex flex-wrap items-center gap-2 text-xs">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1 font-semibold text-ink border border-border/60">
-          <Users className="size-3.5 text-primary" /> Who can participate: All registered students (Batch 2025 &amp; Batch 2026)
+      <div className="flex flex-wrap items-center gap-2 text-xs max-w-full">
+        <span className="inline-flex items-center gap-1.5 rounded-xl sm:rounded-full bg-surface-2 px-3 py-1.5 font-semibold text-ink border border-border/60 max-w-full text-xs leading-snug">
+          <Users className="size-3.5 shrink-0 text-primary" />
+          <span className="break-words">Who can participate: All registered students (Batch 2025 &amp; Batch 2026)</span>
         </span>
       </div>
       <PausedBanner />
@@ -101,9 +102,9 @@ export default function PositionPage() {
         </div>
       ) : (
         <>
-          <div className="rounded-xl border border-border bg-surface p-4 shadow-sm flex flex-col items-center">
-            <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted mb-2">
-              <Trophy className="size-3.5 text-warning" /> Live {position.name} Standings
+          <div className="rounded-xl border border-border bg-surface p-3 sm:p-4 shadow-sm flex flex-col items-center max-w-full overflow-hidden">
+            <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted mb-2 text-center">
+              <Trophy className="size-3.5 shrink-0 text-warning" /> Live {position.name} Standings
             </div>
             <LeaderboardPodium
               size="sm"
@@ -124,7 +125,7 @@ export default function PositionPage() {
             />
           </div>
 
-          <ul className="grid gap-2 lg:grid-cols-2" aria-live="off">
+          <ul className="grid gap-2 lg:grid-cols-2 max-w-full min-w-0" aria-live="off">
             {ranked.map(({ n, votes }, i) => (
               <NomineeRow
                 key={n._id}

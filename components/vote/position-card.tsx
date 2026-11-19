@@ -115,7 +115,7 @@ export function PositionCard({
       </div>
 
       {/* Dedicated Leaderboard Podium for this Section */}
-      <div className="p-3 sm:p-4 flex-1 flex flex-col justify-end items-center min-h-[175px] bg-surface-2/20">
+      <div className="p-3 sm:p-4 flex-1 flex flex-col justify-end items-center min-h-[175px] bg-surface-2/20 max-w-full overflow-hidden">
         <span className="text-[11px] font-bold uppercase tracking-wider text-muted mb-2 flex items-center gap-1">
           <Trophy className="size-3 text-warning" /> Live {getClubShortName(position)} Standings
         </span>

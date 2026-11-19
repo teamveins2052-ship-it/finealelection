@@ -108,7 +108,10 @@
   }
 }
 
-html {
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
   -webkit-text-size-adjust: 100%;
   /* The display face has one weight; never fake-bold it. */
   font-synthesis-weight: none;

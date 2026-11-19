@@ -117,10 +117,10 @@ export function StudentShell({ children, nomineeOnly }: { children: React.ReactN
   }
 
   return (
-    <div className="min-h-dvh pb-[calc(72px+env(safe-area-inset-bottom))] lg:pb-8">
+    <div className="min-h-dvh pb-[calc(72px+env(safe-area-inset-bottom))] lg:pb-8 max-w-full overflow-x-hidden">
       <OfflineBar />
       <Header isNominee={student.isNominee} />
-      <main className="mx-auto w-full max-w-[1720px] px-4 pt-4 sm:px-6 lg:px-10 xl:px-12 lg:pt-8">{children}</main>
+      <main className="mx-auto w-full max-w-[1720px] px-3.5 sm:px-6 lg:px-10 xl:px-12 pt-4 lg:pt-8 min-w-0 max-w-full overflow-x-hidden">{children}</main>
       <BottomNav isNominee={student.isNominee} />
       <Sheet open={kicked} onClose={() => undefined} dismissible={false} title="Signed in elsewhere">
         <div className="space-y-4 text-center">

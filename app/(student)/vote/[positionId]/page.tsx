@@ -142,7 +142,7 @@ export default function PositionPage() {
       )}
 
       {!voted && phase === "voting" && ranked.length > 0 && (
-        <p className="sticky bottom-[calc(80px+env(safe-area-inset-bottom))] rounded-full bg-surface-2/95 py-2 text-center text-sm font-semibold text-muted backdrop-blur lg:bottom-4">
+        <p className="mt-4 rounded-xl border border-border/60 bg-surface-2/70 py-2.5 text-center text-xs sm:text-sm font-semibold text-muted">
           Tap a nominee to view and vote
         </p>
       )}

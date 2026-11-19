@@ -19,7 +19,7 @@ const newPositions = [
   {
     id: "genai-lead",
     club: "Gen AI Club",
-    name: "Gen AI Club Lead",
+    name: "Gen AI Club President",
     icon: "Sparkles",
     color: "#0BA5EC",
     order: 1,
@@ -29,7 +29,7 @@ const newPositions = [
   {
     id: "tech-lead",
     club: "Advanced Tech",
-    name: "Advanced Tech Lead",
+    name: "Advanced Tech President",
     icon: "Code2",
     color: "#F79009",
     order: 2,
@@ -39,7 +39,7 @@ const newPositions = [
   {
     id: "edc-lead",
     club: "Entrepreneurship Development Club (EDC)",
-    name: "EDC Lead",
+    name: "EDC President",
     icon: "Rocket",
     color: "#10B981",
     order: 3,

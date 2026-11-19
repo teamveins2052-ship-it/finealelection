@@ -5,9 +5,9 @@ import { audit, verifiedEmail } from "../auth/guards";
 
 /** Placeholder ballot — edit in Admin → Positions & Nominees (SEEDDATA §3.2). */
 const POSITIONS = [
-  { id: "genai-lead", name: "Gen AI Club Lead", club: "Gen AI Club", color: "#0BA5EC", icon: "Sparkles", order: 1 },
-  { id: "tech-lead", name: "Advanced Tech Lead", club: "Advanced Tech", color: "#F79009", icon: "Code2", order: 2 },
-  { id: "edc-lead", name: "EDC Lead", club: "Entrepreneurship Development Club (EDC)", color: "#10B981", icon: "Rocket", order: 3 },
+  { id: "genai-lead", name: "Gen AI Club President", club: "Gen AI Club", color: "#0BA5EC", icon: "Sparkles", order: 1 },
+  { id: "tech-lead", name: "Advanced Tech President", club: "Advanced Tech", color: "#F79009", icon: "Code2", order: 2 },
+  { id: "edc-lead", name: "EDC President", club: "Entrepreneurship Development Club (EDC)", color: "#10B981", icon: "Rocket", order: 3 },
   { id: "media-head", name: "Media Club Head", club: "Media Club", color: "#FF5A36", icon: "Camera", order: 4 },
   { id: "arts-head", name: "Arts Club Head", club: "Arts Club", color: "#EE46BC", icon: "Palette", order: 5 },
   { id: "sports-president", name: "Sports Club President", club: "Sports Club", color: "#12B76A", icon: "Trophy", order: 6 },

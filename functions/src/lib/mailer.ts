@@ -1,6 +1,9 @@
 import { FieldValue, type DocumentReference } from "./store";
 import { db } from "./admin";
-import { APP_URL, sendEmail } from "./helpers";
+import { sendEmail } from "./helpers";
+
+// External emails must always link to production canonical URL semmap.in
+const EMAIL_APP_URL = "https://semmap.in";
 
 /**
  * Brevo email outbox. Every app email (welcome, sticker, announcement, reminder, correction)
@@ -95,12 +98,14 @@ export function welcomeEmail(firstName: string): { subject: string; html: string
   <li>Cast your vote across all 7 participating clubs.</li>
   <li>Save and view your receipts in <b>My Votes</b>.</li>
 </ol>
-${button(`${APP_URL}/dashboard`, "Go to Ballot & Vote")}`),
+${button(`${EMAIL_APP_URL}/dashboard`, "Go to Ballot & Vote")}`),
   };
 }
 
 /** "I voted" sticker & confirmation — sent once the student has cast votes in all active clubs. */
 export function stickerEmail(firstName: string, clubs: number): { subject: string; html: string } {
+  const posterCdn = "https://jfrphskbdjnokfhpshbe.supabase.co/storage/v1/object/public/media/assets/election-poster.jpg";
+  const posterDownload = "https://semmap.in/election-poster.jpg";
   const sticker = `<table role="presentation" align="center" style="margin:12px auto 8px"><tr><td align="center"
 style="background:#111;color:#FBFAF7;border-radius:24px;padding:26px 34px;box-shadow:6px 7px 0 #F1DC9A">
 <div style="font-size:44px;line-height:1">✓</div>
@@ -108,17 +113,31 @@ style="background:#111;color:#FBFAF7;border-radius:24px;padding:26px 34px;box-sh
 <div style="font-size:14px;margin-top:6px">in all ${clubs} clubs · NIAT Elections '26</div>
 <div style="font-size:13px;margin-top:10px;opacity:.8">— ${esc(firstName)}</div>
 </td></tr></table>`;
+
   return {
     subject: `🎉 Congratulations! You have voted in all ${clubs} clubs — NIAT Elections '26`,
     html: layout("All Votes Cast!", `
 <p style="font-size:16px;line-height:1.5">Congratulations, <b>${esc(firstName)}</b>!</p>
-<p style="font-size:16px;line-height:1.5">You have successfully cast your vote across all <b>${clubs} clubs</b> in the NIAT Campus Elections 2026.</p>
+<p style="font-size:16px;line-height:1.5">You have successfully cast your vote across all <b>${clubs} clubs</b> in the NIAT Campus Elections 2026. We completed the election successfully!</p>
 ${sticker}
 <div style="background:#FFF;border:1px solid #E5E7EB;border-radius:12px;padding:16px 20px;margin:20px 0">
-  <div style="font-size:14px;color:#111827;font-weight:700;margin-bottom:4px">✓ All ${clubs} Votes Confirmed & Counted</div>
+  <div style="font-size:14px;color:#111827;font-weight:700;margin-bottom:4px">✓ All ${clubs} Votes Confirmed &amp; Counted</div>
   <div style="font-size:13px;color:#4B5563;line-height:1.5">Your choices are private and anonymously tallied. You can view all your cryptographic receipt codes and timestamped proof anytime in <b>My Votes</b>.</div>
 </div>
-${button(`${APP_URL}/my-votes`, "View My Vote Receipts")}`),
+${button(`${EMAIL_APP_URL}/my-votes`, "View My Vote Receipts")}
+
+<div style="margin:28px 0 16px;text-align:center;background:#FFF;border:1px solid #E5E7EB;border-radius:16px;padding:20px">
+  <div style="font-size:14px;font-weight:800;color:#111;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Official Election 2026 Poster</div>
+  <p style="font-size:13px;color:#5C5B56;margin:0 0 16px">You can download and keep the official candidates poster:</p>
+  <a href="${posterDownload}" target="_blank" download="niat-election-poster-2026.jpg" style="text-decoration:none;display:inline-block">
+    <img src="${posterCdn}" alt="NIAT Elections 2026 Official Poster" width="100%" style="max-width:380px;height:auto;border-radius:12px;border:1px solid #DCDAD3;box-shadow:0 4px 16px rgba(0,0,0,0.1);display:block;margin:0 auto" />
+  </a>
+  <p style="margin-top:16px;margin-bottom:4px">
+    <a href="${posterDownload}" target="_blank" download="niat-election-poster-2026.jpg" style="display:inline-block;background:#F1DC9A;color:#111;text-decoration:none;font-weight:800;font-size:13px;padding:12px 24px;border-radius:999px;border:1px solid #111">
+      📥 Download Election Poster
+    </a>
+  </p>
+</div>`),
   };
 }
 
@@ -127,19 +146,19 @@ export function announcementEmail(subject: string, message: string, firstName: s
   const paragraphs = esc(message).split(/\n{2,}/).map((p) => `<p style="font-size:16px;line-height:1.55">${p.replace(/\n/g, "<br>")}</p>`).join("");
   return {
     subject,
-    html: layout(subject, `<p style="font-size:16px">Hi ${esc(firstName)},</p>${paragraphs}${button(APP_URL, "Open NIAT Elections")}`),
+    html: layout(subject, `<p style="font-size:16px">Hi ${esc(firstName)},</p>${paragraphs}${button(EMAIL_APP_URL, "Open NIAT Elections")}`),
   };
 }
 
 export function reminderEmail(firstName: string, niatId: string): { subject: string; html: string } {
   return {
     subject: "Your vote is waiting — NIAT Elections '26",
-    html: layout("Don't miss your vote", `<p style="font-size:16px;line-height:1.5">Hi ${esc(firstName)}, you still have clubs to vote in. It takes under a minute per club.</p>${button(`${APP_URL}/login?id=${encodeURIComponent(niatId)}`, "Vote now")}`),
+    html: layout("Don't miss your vote", `<p style="font-size:16px;line-height:1.5">Hi ${esc(firstName)}, you still have clubs to vote in. It takes under a minute per club.</p>${button(`${EMAIL_APP_URL}/login?id=${encodeURIComponent(niatId)}`, "Vote now")}`),
   };
 }
 
 export function correctionEmail(resolved: boolean, niatId: string, note?: string): { subject: string; html: string } {
   return resolved
-    ? { subject: "Your details are fixed — you can log in now", html: layout("You're all set", `<p style="font-size:16px;line-height:1.5">Your details were updated by the election committee.</p>${button(`${APP_URL}/login?id=${encodeURIComponent(niatId)}`, "Sign in to vote")}`) }
-    : { subject: "Update on your correction request", html: layout("Request update", `<p style="font-size:16px;line-height:1.5">Your request wasn't approved${note ? `: ${esc(note)}` : ""}. Your account is active again with the original details.</p>${button(`${APP_URL}/login?id=${encodeURIComponent(niatId)}`, "Sign in")}`) };
+    ? { subject: "Your details are fixed — you can log in now", html: layout("You're all set", `<p style="font-size:16px;line-height:1.5">Your details were updated by the election committee.</p>${button(`${EMAIL_APP_URL}/login?id=${encodeURIComponent(niatId)}`, "Sign in to vote")}`) }
+    : { subject: "Update on your correction request", html: layout("Request update", `<p style="font-size:16px;line-height:1.5">Your request wasn't approved${note ? `: ${esc(note)}` : ""}. Your account is active again with the original details.</p>${button(`${EMAIL_APP_URL}/login?id=${encodeURIComponent(niatId)}`, "Sign in")}`) };
 }

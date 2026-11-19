@@ -1,7 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, PartyPopper, Sparkles, Trophy, Vote } from "lucide-react";
+import { ArrowRight, Download, PartyPopper, Sparkles, Trophy, Vote } from "lucide-react";
 import { Banners, PausedBanner } from "@/components/shared/status";
 import { Card, ErrorState, LiveDot, Skeleton, VoteBar } from "@/components/ui/primitives";
 import { PositionCard } from "@/components/vote/position-card";
@@ -77,13 +78,48 @@ export default function DashboardPage() {
         )}
 
         {allDone && (
-          <Card className="flex items-center gap-3 border-success/40 bg-success/8 p-4">
-            <PartyPopper className="size-8 shrink-0 text-success" />
-            <div className="flex-1">
-              <p className="font-semibold">You voted in all {active.length} clubs 🎉</p>
-              <Link href="/my-votes" className="text-sm font-semibold text-primary">
-                See receipts & share your badge →
+          <Card className="flex flex-col gap-3.5 border-2 border-success/40 bg-success/8 p-4 sm:p-5 rounded-2xl">
+            <div className="flex items-center gap-3">
+              <PartyPopper className="size-8 shrink-0 text-success" />
+              <div className="flex-1">
+                <p className="font-bold text-base">You voted in all {active.length} clubs 🎉</p>
+                <p className="text-xs text-muted">All your votes are securely confirmed and cryptographically counted.</p>
+              </div>
+              <Link href="/my-votes" className="text-sm font-semibold text-primary underline underline-offset-2">
+                Receipts →
               </Link>
+            </div>
+            <div className="flex flex-col sm:flex-row items-center gap-3.5 rounded-xl border border-border/80 bg-surface/90 p-3.5">
+              <a href="/election-poster.jpg" target="_blank" rel="noopener noreferrer" className="shrink-0">
+                <Image
+                  src="/election-poster.jpg"
+                  alt="NIAT Elections 2026 Official Poster"
+                  width={112}
+                  height={200}
+                  className="w-24 sm:w-28 h-auto rounded-lg border border-border shadow-sm object-cover"
+                />
+              </a>
+              <div className="flex-1 text-center sm:text-left space-y-1">
+                <p className="text-sm font-bold">Official Election 2026 Poster</p>
+                <p className="text-xs text-muted">Download and keep the official candidates poster for the 2026 elections.</p>
+                <div className="pt-1.5 flex flex-wrap gap-2 justify-center sm:justify-start">
+                  <a
+                    href="/election-poster.jpg"
+                    download="niat-election-poster-2026.jpg"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-ink bg-ink px-3.5 py-1.5 text-xs font-bold text-bg shadow-ink transition-transform active:scale-95"
+                  >
+                    <Download className="size-3.5" /> Download Poster
+                  </a>
+                  <a
+                    href="/election-poster.jpg"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-3.5 py-1.5 text-xs font-semibold text-foreground hover:bg-muted/10"
+                  >
+                    View Full Poster
+                  </a>
+                </div>
+              </div>
             </div>
           </Card>
         )}

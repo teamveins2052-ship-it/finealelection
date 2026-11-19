@@ -1,8 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Award, ListChecks, Share2 } from "lucide-react";
+import { Award, Download, ListChecks, Share2 } from "lucide-react";
 import { ClubIcon } from "@/components/shared/club-icon";
 import { Button } from "@/components/ui/button";
 import { Card, EmptyState, ErrorState, Skeleton } from "@/components/ui/primitives";
@@ -58,6 +59,60 @@ export default function MyVotesPage() {
             </button>
           ))}
         </section>
+      )}
+
+      {done.length > 0 && (
+        <Card className="overflow-hidden border-2 border-ink/15 bg-surface p-4 sm:p-5 rounded-2xl shadow-card space-y-3.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Award className="size-5 text-primary" />
+              <h2 className="font-display text-base font-bold">Official Election 2026 Poster</h2>
+            </div>
+            {pending.length === 0 && (
+              <span className="rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-bold text-success border border-success/30">
+                All {active.length} Cast 🎉
+              </span>
+            )}
+          </div>
+          <div className="flex flex-col sm:flex-row items-center gap-4">
+            <a href="/election-poster.jpg" target="_blank" rel="noopener noreferrer" className="block shrink-0 group">
+              <Image
+                src="/election-poster.jpg"
+                alt="NIAT Elections 2026 Official Poster"
+                width={144}
+                height={256}
+                className="w-28 sm:w-36 h-auto rounded-xl shadow-md border border-border transition-transform group-hover:scale-105"
+              />
+            </a>
+            <div className="flex-1 space-y-2 text-center sm:text-left">
+              <p className="text-sm font-semibold text-foreground">
+                {pending.length === 0
+                  ? "Congratulations! You have completed voting across all clubs in the NIAT Campus Elections 2026."
+                  : `You've cast votes in ${done.length} of ${active.length} clubs. Download the official candidates poster:`}
+              </p>
+              <p className="text-xs text-muted">
+                Official high-resolution poster featuring all presidential nominees across clubs.
+              </p>
+              <div className="flex flex-wrap gap-2.5 justify-center sm:justify-start pt-1">
+                <a
+                  href="/election-poster.jpg"
+                  download="niat-election-poster-2026.jpg"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-ink bg-ink px-4 py-2 text-xs font-bold text-bg shadow-ink transition-transform active:scale-95"
+                >
+                  <Download className="size-3.5" /> Download Election Poster
+                </a>
+                <a
+                  href="/election-poster.jpg"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface px-4 py-2 text-xs font-bold text-foreground hover:bg-muted/10"
+                >
+                  View Full Poster
+                </a>
+              </div>
+            </div>
+          </div>
+        </Card>
       )}
 
       {done.length === 0 ? (

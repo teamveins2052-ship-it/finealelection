@@ -49,7 +49,7 @@ const newPositions = [
   {
     id: "media-head",
     club: "Media Club",
-    name: "Media Club Head",
+    name: "Media Club President",
     icon: "Camera",
     color: "#FF5A36",
     order: 4,
@@ -59,7 +59,7 @@ const newPositions = [
   {
     id: "arts-head",
     club: "Arts Club",
-    name: "Arts Club Head",
+    name: "Arts Club President",
     icon: "Palette",
     color: "#EE46BC",
     order: 5,

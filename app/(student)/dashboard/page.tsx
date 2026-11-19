@@ -104,7 +104,7 @@ export default function DashboardPage() {
                 <p className="text-xs text-muted">Download and keep the official candidates poster for the 2026 elections.</p>
                 <div className="pt-1.5 flex flex-wrap gap-2 justify-center sm:justify-start">
                   <a
-                    href="/election-poster.jpg"
+                    href="/api/download-poster"
                     download="niat-election-poster-2026.jpg"
                     className="inline-flex items-center gap-1.5 rounded-full border border-ink bg-ink px-3.5 py-1.5 text-xs font-bold text-bg shadow-ink transition-transform active:scale-95"
                   >

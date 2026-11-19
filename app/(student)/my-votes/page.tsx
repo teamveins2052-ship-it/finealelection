@@ -95,7 +95,7 @@ export default function MyVotesPage() {
               </p>
               <div className="flex flex-wrap gap-2.5 justify-center sm:justify-start pt-1">
                 <a
-                  href="/election-poster.jpg"
+                  href="/api/download-poster"
                   download="niat-election-poster-2026.jpg"
                   className="inline-flex items-center gap-1.5 rounded-full border border-ink bg-ink px-4 py-2 text-xs font-bold text-bg shadow-ink transition-transform active:scale-95"
                 >

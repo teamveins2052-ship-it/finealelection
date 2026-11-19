@@ -105,7 +105,7 @@ ${button(`${EMAIL_APP_URL}/dashboard`, "Go to Ballot & Vote")}`),
 /** "I voted" sticker & confirmation — sent once the student has cast votes in all active clubs. */
 export function stickerEmail(firstName: string, clubs: number): { subject: string; html: string } {
   const posterCdn = "https://jfrphskbdjnokfhpshbe.supabase.co/storage/v1/object/public/media/assets/election-poster.jpg";
-  const posterDownload = "https://semmap.in/election-poster.jpg";
+  const posterDownload = "https://semmap.in/api/download-poster";
   const sticker = `<table role="presentation" align="center" style="margin:12px auto 8px"><tr><td align="center"
 style="background:#111;color:#FBFAF7;border-radius:24px;padding:26px 34px;box-shadow:6px 7px 0 #F1DC9A">
 <div style="font-size:44px;line-height:1">✓</div>

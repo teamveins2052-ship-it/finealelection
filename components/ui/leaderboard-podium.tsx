@@ -5,6 +5,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { Crown } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { Avatar } from "@/components/ui/avatar"
 
 // Types (inlined)
 interface LeaderboardRanking {
@@ -135,9 +136,6 @@ const LeaderboardPodium = React.forwardRef<
 
           const displayName =
             ranking.userName || `User ${ranking.userId.slice(0, 6)}`
-          const avatarSrc =
-            ranking.avatarUrl ??
-            `https://i.pravatar.cc/96?u=${encodeURIComponent(ranking.userId)}`
           const podiumHeight = {
             sm: config.heightSm,
             default: config.height,
@@ -145,6 +143,8 @@ const LeaderboardPodium = React.forwardRef<
           }[size ?? "default"]
 
           const itemLabel = `Rank ${ranking.rank}: ${displayName}${showValue ? `, ${ranking.value.toLocaleString()}` : ""}`
+
+          const avatarPixelSize = size === "sm" ? 40 : size === "lg" ? 80 : 56
 
           return (
             <div
@@ -156,11 +156,11 @@ const LeaderboardPodium = React.forwardRef<
               {/* Avatar */}
               <div className="relative mb-2" aria-hidden="true">
                 {showAvatar ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={avatarSrc}
-                    alt={`${displayName} avatar`}
-                    className={cn("rounded-full object-cover border border-border/50", avatarSize)}
+                  <Avatar
+                    src={ranking.avatarUrl}
+                    name={displayName}
+                    size={avatarPixelSize}
+                    className="border border-border/50 shadow-xs"
                   />
                 ) : (
                   <div

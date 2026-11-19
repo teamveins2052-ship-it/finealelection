@@ -39,10 +39,8 @@ export default function DashboardPage() {
       .map((n) => {
         const count = counts[n._id] ?? 0;
         const nameParts = n.name.trim().split(/\s+/);
-        const displayName =
-          nameParts.length > 1
-            ? `${nameParts[0]} ${nameParts[1][0]}.`
-            : nameParts[0];
+        const wordIdx = nameParts.findIndex((p) => p.length > 2);
+        const displayName = wordIdx > 0 ? nameParts.slice(0, wordIdx + 1).join(" ") : nameParts.slice(0, 2).join(" ");
         return {
           userId: n._id,
           userName: displayName,

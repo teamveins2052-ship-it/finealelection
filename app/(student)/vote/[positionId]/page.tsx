@@ -71,6 +71,11 @@ export default function PositionPage() {
         </div>
       </div>
       {position.description && <p className="text-sm text-muted">{position.description}</p>}
+      <div className="flex flex-wrap items-center gap-2 text-xs">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1 font-semibold text-ink border border-border/60">
+          <Users className="size-3.5 text-primary" /> Who can participate: All registered students (Batch 2025 &amp; Batch 2026)
+        </span>
+      </div>
       <PausedBanner />
 
       {voted && (
@@ -102,13 +107,18 @@ export default function PositionPage() {
             </div>
             <LeaderboardPodium
               size="sm"
-              rankings={ranked.slice(0, 3).map(({ n, votes }, i) => ({
-                userId: n._id,
-                userName: n.name.split(" ")[0] + (n.name.split(" ")[1] ? " " + n.name.split(" ")[1][0] + "." : ""),
-                value: votes,
-                avatarUrl: n.photoUrl || undefined,
-                rank: i + 1,
-              }))}
+              rankings={ranked.slice(0, 3).map(({ n, votes }, i) => {
+                const parts = n.name.trim().split(/\s+/);
+                const wordIdx = parts.findIndex((p) => p.length > 2);
+                const displayName = wordIdx > 0 ? parts.slice(0, wordIdx + 1).join(" ") : parts.slice(0, 2).join(" ");
+                return {
+                  userId: n._id,
+                  userName: displayName,
+                  value: votes,
+                  avatarUrl: n.photoUrl || undefined,
+                  rank: i + 1,
+                };
+              })}
               showValue
               showAvatar
             />

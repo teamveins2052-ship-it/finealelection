@@ -41,7 +41,7 @@ export default function SettingsPage() {
       await updateSettings(session.email, s, patch);
       toast.success(msg);
     } catch {
-      toast.error("Couldn't save. Dates must be in order: campaign < open < close < site close.");
+      toast.error("Couldn't save. Dates must be in order: campaign <= open < close < site close.");
     } finally {
       setBusy(null);
     }
@@ -49,8 +49,8 @@ export default function SettingsPage() {
 
   const saveTimes = () => {
     const parsed = Object.fromEntries(TIMES.map(([k]) => [k, fromLocal(times[k])])) as Pick<PublicSettings, (typeof TIMES)[number][0]>;
-    if (!(parsed.campaignOpensAt < parsed.opensAt && parsed.opensAt < parsed.closesAt && parsed.closesAt < parsed.siteClosesAt)) {
-      return toast.error("Dates must be in order: campaign < open < close < site close.");
+    if (!(parsed.campaignOpensAt <= parsed.opensAt && parsed.opensAt < parsed.closesAt && parsed.closesAt < parsed.siteClosesAt)) {
+      return toast.error("Dates must be in order: campaign <= open < close < site close.");
     }
     save("times", parsed, "Voting window saved");
   };

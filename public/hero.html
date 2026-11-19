@@ -3504,11 +3504,14 @@
       #step-card.is-in #step-icons img:nth-child(3),
       #step-card.is-in #step-key .krow:nth-child(3) { transition-delay: 220ms; }
       #step-card.is-in #step-icons img:nth-child(4) { transition-delay: 330ms; }
-      @media (prefers-reduced-motion: reduce) {
-        /* Force pure Hero Section view: hide all game HUD, modals, tutorial cards, and overlays */
+      @media (prefers-reduced-motion: reduce) {}
+
+      /* Force pure Hero Section view: unconditionally hide all game HUD, dollars, fees, docks, modals, tutorial cards, and overlays for all users */
       #steps,
       #top,
       #dock,
+      #feepanel,
+      #fee-panel,
       #card,
       #railcard,
       #alarm,
@@ -3521,11 +3524,20 @@
       #tbars,
       #aimtip,
       #droptip,
-      #consent {
+      #consent,
+      #credit,
+      #zoom,
+      #inspect,
+      #rail,
+      #launch,
+      #menu {
         display: none !important;
         visibility: hidden !important;
         pointer-events: none !important;
         opacity: 0 !important;
+        width: 0 !important;
+        height: 0 !important;
+        overflow: hidden !important;
       }
 
       #intro {

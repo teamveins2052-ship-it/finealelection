@@ -164,6 +164,15 @@ async function canWrite(ctx: Ctx, w: Write): Promise<boolean> {
     case "nominees": { // P-NOM-02 / P-NOM-03
       if (w.kind !== "update") return false;
       const photo = after.photoUrl;
+      const isAdmin = await ctx.isAdmin();
+      if (isAdmin) {
+        return (
+          onlyChanged(before, after, ["photoUrl", "bio", "promises", "updatedAt"]) &&
+          (photo == null || typeof photo === "string") &&
+          str(after.bio, 300) && Array.isArray(after.promises) && after.promises.length <= 6 &&
+          after.promises.every((p) => str(p, 120)) && isServerTime(after.updatedAt)
+        );
+      }
       return (
         (await ctx.isStudent(before.niatId)) && before.active === true && (await ctx.campaignOpen()) &&
         onlyChanged(before, after, ["photoUrl", "bio", "promises", "updatedAt"]) &&

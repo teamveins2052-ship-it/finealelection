@@ -35,15 +35,20 @@ export async function POST(req: Request) {
 
   const niatId = new URL(req.url).searchParams.get("niatId") ?? "";
   const student = niatId ? (await db.doc(`students/${niatId}`).get()).data() : undefined;
-  if (!student || student.email !== token.email || student.status !== "active" || student.isNominee !== true) {
-    return apiError(403, "forbidden", "Only nominees can upload.");
-  }
-  if (!mfaOk) {
-    const settings = (await db.doc("settings/election").get()).data();
-    if (settings?.requireStudentMfa !== false || student.mfaEnabled === true) return apiError(403, "mfa_required", "Finish 2-step verification first.");
+  const adminDoc = await db.doc(`admins/${token.email}`).get();
+  const isAdmin = adminDoc.exists && adminDoc.data()?.status === "active";
+
+  if (!isAdmin) {
+    if (!student || student.email !== token.email || student.status !== "active" || student.isNominee !== true) {
+      return apiError(403, "forbidden", "Only nominees can upload.");
+    }
+    if (!mfaOk) {
+      const settings = (await db.doc("settings/election").get()).data();
+      if (settings?.requireStudentMfa !== false || student.mfaEnabled === true) return apiError(403, "mfa_required", "Finish 2-step verification first.");
+    }
   }
   try {
-    await rateLimit(`upload_${niatId}`, 30, 3600);
+    await rateLimit(isAdmin ? `upload_admin_${token.email}` : `upload_${niatId}`, 60, 3600);
   } catch {
     return apiError(429, "rate_limited", "Upload limit reached. Try later.");
   }

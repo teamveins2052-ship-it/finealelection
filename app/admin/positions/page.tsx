@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { doc, serverTimestamp, setDoc, updateDoc } from "@/lib/db/firestore";
 import { toast } from "sonner";
-import { ArrowDown, ArrowUp, Plus, Search, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Plus, Search, Upload, X } from "lucide-react";
 import { PageTitle } from "@/components/admin/shell";
 import { useAdminData } from "@/components/admin/data";
 import { CLUB_COLORS, CLUB_ICON_NAMES, ClubIcon } from "@/components/shared/club-icon";
@@ -13,7 +13,7 @@ import { Card, Chip, Input, Label, Skeleton, Textarea } from "@/components/ui/pr
 import { Sheet } from "@/components/ui/sheet";
 import { call, errorMessage, invalidate } from "@/lib/client-data";
 import { backend } from "@/lib/backend/client";
-import { PositionId, type Position } from "@/lib/schema";
+import { PositionId, type Nominee, type Position } from "@/lib/schema";
 import type { WithId } from "@/lib/schema/converters";
 
 /** D4 / N1: positions (admin write, P-POS-02) + nominee toggles via setNominee (locked once voting opens). */
@@ -21,6 +21,7 @@ export default function PositionsPage() {
   const { positions, nominees } = useAdminData();
   const [editing, setEditing] = useState<WithId<Position> | "new" | null>(null);
   const [adding, setAdding] = useState<WithId<Position> | null>(null);
+  const [editingNominee, setEditingNominee] = useState<{ nominee: WithId<Nominee>; position: WithId<Position> } | null>(null);
   if (!positions || !nominees) return <Skeleton className="h-96" />;
 
   const move = async (p: WithId<Position>, dir: -1 | 1) => {
@@ -68,7 +69,15 @@ export default function PositionsPage() {
               <ul className="mt-3 flex flex-wrap gap-2">
                 {list.map((n) => (
                   <li key={n._id} className="flex items-center gap-2 rounded-full border border-border bg-surface-2 py-1 pr-1 pl-1.5 text-sm">
-                    <Avatar src={n.photoUrl} name={n.name} color={p.color} size={24} /> {n.name}
+                    <button
+                      type="button"
+                      onClick={() => setEditingNominee({ nominee: n, position: p })}
+                      className="flex items-center gap-1.5 hover:opacity-80 transition cursor-pointer text-left"
+                      title="Click to edit profile photo, bio & manifesto promises"
+                    >
+                      <Avatar src={n.photoUrl} name={n.name} color={p.color} size={24} />
+                      <span className="font-semibold underline-offset-2 hover:underline">{n.name}</span>
+                    </button>
                     <button aria-label={`Remove ${n.name}`} onClick={() => remove(n.niatId, p._id)} className="grid size-7 place-items-center rounded-full text-muted hover:bg-border"><X className="size-3.5" /></button>
                   </li>
                 ))}
@@ -80,6 +89,7 @@ export default function PositionsPage() {
       </div>
       {editing && <PositionEditor position={editing === "new" ? null : editing} nextOrder={(positions.at(-1)?.order ?? 0) + 1} onClose={() => setEditing(null)} />}
       {adding && <AddNominee position={adding} onClose={() => setAdding(null)} />}
+      {editingNominee && <EditNominee nominee={editingNominee.nominee} position={editingNominee.position} onClose={() => setEditingNominee(null)} />}
     </>
   );
 }
@@ -219,6 +229,194 @@ function AddNominee({ position, onClose }: { position: WithId<Position>; onClose
             </li>
           )}
         </ul>
+      </div>
+    </Sheet>
+  );
+}
+
+function EditNominee({
+  nominee,
+  position,
+  onClose,
+}: {
+  nominee: WithId<Nominee>;
+  position?: WithId<Position>;
+  onClose: () => void;
+}) {
+  const [photoUrl, setPhotoUrl] = useState(nominee.photoUrl ?? "");
+  const [bio, setBio] = useState(nominee.bio ?? "");
+  const [promises, setPromises] = useState<string[]>(
+    nominee.promises && nominee.promises.length ? nominee.promises : [""]
+  );
+  const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const upload = async (f: File) => {
+    if (!/^image\/(webp|jpeg|png)$/.test(f.type)) return toast.error("Use a JPG, PNG or WebP image.");
+    if (f.size > 2 * 1024 * 1024) return toast.error("Images must be 2 MB or less.");
+    setUploading(true);
+    try {
+      let token = await backend().auth.currentUser?.getIdToken().catch(() => null);
+      if (!token) {
+        const { supabase } = await import("@/lib/supabase/client");
+        const { data } = await supabase().auth.getSession();
+        token = data.session?.access_token ?? null;
+      }
+      if (!token) throw new Error("Session expired. Please sign in again.");
+
+      const res = await fetch(`/api/media/upload-url?niatId=${encodeURIComponent(nominee.niatId)}`, {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+        body: JSON.stringify({ kind: "avatar", contentType: f.type, sizeBytes: f.size }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error?.message ?? "Couldn't get upload URL.");
+      }
+      const { uploadUrl, publicUrl, headers } = await res.json();
+      const putRes = await fetch(uploadUrl, { method: "PUT", headers, body: f });
+      if (!putRes.ok) throw new Error("File upload failed.");
+
+      setPhotoUrl(publicUrl);
+      toast.success("Photo uploaded successfully! Tap 'Save Profile' to apply.");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const save = async () => {
+    setBusy(true);
+    try {
+      await updateDoc(doc(backend().db, "nominees", nominee._id), {
+        photoUrl: photoUrl.trim() || null,
+        bio: bio.trim().slice(0, 300),
+        promises: promises.map((p) => p.trim()).filter(Boolean).slice(0, 6).map((p) => p.slice(0, 120)),
+        updatedAt: serverTimestamp(),
+      });
+      invalidate(`nominee:${nominee._id}`);
+      invalidate(`nominees:${nominee.positionId}`);
+      invalidate("all-nominees");
+      invalidate("positions");
+      toast.success(`Profile updated for ${nominee.name}! Voters and standings show it immediately.`);
+      onClose();
+    } catch (e) {
+      toast.error((e as Error).message || "Couldn't save nominee profile.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Sheet open onClose={onClose} title="Edit Nominee Profile" className="sm:max-w-lg">
+      <div className="space-y-4">
+        <div>
+          <h2 className="font-display text-lg font-semibold">{nominee.name}</h2>
+          <p className="text-xs text-muted">
+            {position?.name ?? nominee.positionId} · <span className="font-mono">{nominee.niatId}</span> · Batch {nominee.batch}
+          </p>
+        </div>
+
+        {/* Profile Photo Section */}
+        <div className="rounded-xl border border-border bg-surface p-4 space-y-3">
+          <Label className="text-xs font-bold uppercase tracking-wider text-muted block">Profile Photo</Label>
+          <div className="flex items-center gap-4">
+            <Avatar src={photoUrl || null} name={nominee.name} color={position?.color ?? "#667085"} size={68} />
+            <div className="space-y-1.5 flex-1 min-w-0">
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                hidden
+                onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])}
+              />
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => fileRef.current?.click()}
+                loading={uploading}
+              >
+                <Upload className="size-4" /> Upload from device
+              </Button>
+              <p className="text-[11px] text-muted">JPG, PNG or WebP up to 2 MB. Appears on podium, ballot and profile.</p>
+            </div>
+          </div>
+          <div>
+            <Label htmlFor="photo-url" className="text-xs text-muted">Or enter direct image URL:</Label>
+            <Input
+              id="photo-url"
+              className="mt-1 h-9 text-xs"
+              placeholder="https://..."
+              value={photoUrl}
+              onChange={(e) => setPhotoUrl(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Bio Section */}
+        <div>
+          <div className="flex justify-between items-center mb-1">
+            <Label htmlFor="bio">Manifesto / Bio</Label>
+            <span className="text-[11px] text-muted">{bio.length}/300</span>
+          </div>
+          <Textarea
+            id="bio"
+            maxLength={300}
+            rows={3}
+            placeholder="Introduce candidate goals and vision for the club..."
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+          />
+        </div>
+
+        {/* Promises */}
+        <div className="space-y-2">
+          <Label>Key Promises (up to 6)</Label>
+          {promises.map((p, idx) => (
+            <div key={idx} className="flex gap-2">
+              <Input
+                placeholder={`Promise #${idx + 1}`}
+                maxLength={120}
+                value={p}
+                onChange={(e) => {
+                  const copy = [...promises];
+                  copy[idx] = e.target.value;
+                  setPromises(copy);
+                }}
+              />
+              {promises.length > 1 && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setPromises(promises.filter((_, i) => i !== idx))}
+                >
+                  <X className="size-3.5" />
+                </Button>
+              )}
+            </div>
+          ))}
+          {promises.length < 6 && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setPromises([...promises, ""])}
+            >
+              <Plus className="size-3.5" /> Add another promise
+            </Button>
+          )}
+        </div>
+
+        {/* Footer Actions */}
+        <div className="pt-2 flex justify-end gap-2 border-t border-border">
+          <Button variant="ghost" onClick={onClose} disabled={busy || uploading}>
+            Cancel
+          </Button>
+          <Button onClick={save} loading={busy} disabled={uploading}>
+            Save Profile
+          </Button>
+        </div>
       </div>
     </Sheet>
   );
